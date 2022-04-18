@@ -24,7 +24,7 @@
 #include "portapack_shared_memory.hpp"
 #include "sine_table_int8.hpp"
 #include "event_m4.hpp"
-
+#include "utility.hpp"
 #include <cstdint>
 
 void OOKTxProcessor::execute(const buffer_c8_t &buffer)
@@ -36,71 +36,61 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 	if (!configured)
 		return;
 
+	// We're going to treat the stream as a bitstream for the fragment's
+	// samples that this has to transmit. For this reason, we'll read only the
+	// necessary for this current buffer handling.
+	// That would be: 2048 samples / 8 / samples_per_bit
+	// Note: 2048 samples = sizeof(*buffer.p) = sizeof(C8) = 2*int8 = 2 bytes // buffer.count = 2048
+	if (stream)
+	{
+		const size_t bytes_to_read = buffer.count / 8 / 10 / samples_per_bit;
+		bytes_read += stream->read(_buffer.p, bytes_to_read);
+	}
+
 	for (size_t i = 0; i < buffer.count; i++)
 	{
-
-		// Synthesis at 2.28M/10 = 228kHz
-		if (!s)
+		// don't do nothing else in case we stop the transmission
+		if (configured)
 		{
-			s = 10 - 1;
-			if (sample_count >= samples_per_bit)
+
+			// Synthesis at 2.28M/SAMPLES_PER_BIT {10} = 228kHz
+			if (s)
+				// don't change the cur_bit if we're still handling the rest of the bit's samples
+				s--;
+			else
 			{
-				if (configured)
+				s = 10 - 1;
+
+				// Samples per bit control
+				if (sample_count >= samples_per_bit)
 				{
-					if (bit_pos >= length)
+					// Prepare to gather the next bit
+					// or end in case we hit the ceilling
+					if (bit_pos >= bitstream_length)
 					{
-						// End of data
-						if (pause_counter == 0)
-						{
-							pause_counter = pause;
-							cur_bit = 0;
-						}
-						else if (pause_counter == 1)
-						{
-							if (repeat_counter < repeat)
-							{
-								// Repeat
-								bit_pos = 0;
-								cur_bit = shared_memory.bb_data.data[0] & 0x80;
-								txprogress_message.progress = repeat_counter + 1;
-								txprogress_message.done = false;
-								shared_memory.application_queue.push(txprogress_message);
-								repeat_counter++;
-							}
-							else
-							{
-								// Stop
-								cur_bit = 0;
-								txprogress_message.done = true;
-								shared_memory.application_queue.push(txprogress_message);
-								configured = false;
-							}
-							pause_counter = 0;
-						}
-						else
-						{
-							pause_counter--;
-						}
+						// Transmission is now completed
+						cur_bit = 0;
+						txprogress_message.done = true;
+						shared_memory.application_queue.push(txprogress_message);
+						configured = false;
 					}
 					else
 					{
-						cur_bit = (shared_memory.bb_data.data[bit_pos >> 3] << (bit_pos & 7)) & 0x80;
+						// Get next bit
+						cur_bit = (_buffer.p[bit_pos >> 3] << (bit_pos & 7)) & 0x80;
 						bit_pos++;
 					}
+
+					sample_count = 0;
 				}
-
-				sample_count = 0;
-			}
-			else
-			{
-				sample_count++;
+				else
+				{
+					sample_count++;
+				}
 			}
 		}
-		else
-		{
-			s--;
-		}
 
+		// Handle the sine wave depending if the current bit is on or off
 		if (cur_bit)
 		{
 			phase = (phase + 200); // What ?
@@ -121,24 +111,45 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 
 void OOKTxProcessor::on_message(const Message *const p)
 {
-	const auto message = *reinterpret_cast<const OOKConfigureMessage *>(p);
+	const auto ook_message = *reinterpret_cast<const OOKConfigureMessage *>(p);
+	const auto stream_message = *reinterpret_cast<const StreamConfigMessage *>(p);
 
-	if (message.id == Message::ID::OOKConfigure)
+	switch (p->id)
 	{
-		samples_per_bit = message.samples_per_bit / 10;
-		repeat = message.repeat - 1;
-		length = message.stream_length;
-		pause = message.pause_symbols + 1;
+	case Message::ID::OOKConfigure:
+		bitstream_length = ook_message.bitstream_length;
+		samples_per_bit = ook_message.samples_per_bit / 10;
+		break;
 
-		pause_counter = 0;
+	case Message::ID::StreamConfig:
+		configured = false;
+		bytes_read = 0;
+
+		if (stream_message.config)
+		{
+			stream = std::make_unique<StreamOutput>(stream_message.config);
+
+			// Tell application that the buffers and FIFO pointers are ready, prefill
+			shared_memory.application_queue.push(sig_message);
+		}
+		else
+		{
+			stream.reset();
+		}
+		break;
+
+	// App has prefilled the buffers, we're ready to go now
+	case Message::ID::FIFOData:
 		s = 0;
-		sample_count = samples_per_bit;
-		repeat_counter = 0;
 		bit_pos = 0;
 		cur_bit = 0;
 		txprogress_message.progress = 0;
 		txprogress_message.done = false;
 		configured = true;
+		break;
+
+	default:
+		break;
 	}
 }
 

@@ -76,7 +76,7 @@ public:
 		DisplaySleep = 17,
 		CaptureConfig = 18,
 		CaptureThreadDone = 19,
-		ReplayConfig = 20,
+		StreamConfig = 20,
 		ReplayThreadDone = 21,
 		AFSKRxConfigure = 22,
 		StatusRefresh = 23,
@@ -682,7 +682,7 @@ public:
 	CaptureConfig *const config;
 };
 
-struct ReplayConfig
+struct StreamConfig
 {
 	const size_t read_size;
 	const size_t buffer_count;
@@ -690,7 +690,7 @@ struct ReplayConfig
 	FIFO<StreamBuffer *> *fifo_buffers_empty;
 	FIFO<StreamBuffer *> *fifo_buffers_full;
 
-	constexpr ReplayConfig(
+	constexpr StreamConfig(
 		const size_t read_size,
 		const size_t buffer_count) : read_size{read_size},
 									 buffer_count{buffer_count},
@@ -701,16 +701,16 @@ struct ReplayConfig
 	}
 };
 
-class ReplayConfigMessage : public Message
+class StreamConfigMessage : public Message
 {
 public:
-	constexpr ReplayConfigMessage(
-		ReplayConfig *const config) : Message{ID::ReplayConfig},
+	constexpr StreamConfigMessage(
+		StreamConfig *const config) : Message{ID::StreamConfig},
 									  config{config}
 	{
 	}
 
-	ReplayConfig *const config;
+	StreamConfig *const config;
 };
 
 class TXProgressMessage : public Message
@@ -978,21 +978,15 @@ class OOKConfigureMessage : public Message
 {
 public:
 	constexpr OOKConfigureMessage(
-		const uint32_t stream_length,
-		const uint32_t samples_per_bit,
-		const uint8_t repeat,
-		const uint32_t pause_symbols) : Message{ID::OOKConfigure},
-										stream_length(stream_length),
-										samples_per_bit(samples_per_bit),
-										repeat(repeat),
-										pause_symbols(pause_symbols)
+		const uint32_t bitstream_length,
+		const uint32_t samples_per_bit) : Message{ID::OOKConfigure},
+										  bitstream_length(bitstream_length),
+										  samples_per_bit(samples_per_bit)
 	{
 	}
 
-	const uint32_t stream_length;
+	const uint32_t bitstream_length;
 	const uint32_t samples_per_bit;
-	const uint8_t repeat;
-	const uint32_t pause_symbols;
 };
 
 class SSTVConfigureMessage : public Message

@@ -26,6 +26,11 @@
 #include "baseband_processor.hpp"
 #include "baseband_thread.hpp"
 
+#include "stream_output.hpp"
+
+#include <array>
+#include <memory>
+
 class OOKTxProcessor : public BasebandProcessor
 {
 public:
@@ -34,19 +39,27 @@ public:
 	void on_message(const Message *const p) override;
 
 private:
-	bool configured = false;
-
 	BasebandThread baseband_thread{2280000, this, NORMALPRIO + 20, baseband::Direction::Transmit};
 
+	bool configured{false};
+	uint32_t bitstream_length{0};
 	uint32_t samples_per_bit{0};
-	uint8_t repeat{0};
-	uint32_t length{0};
-	uint32_t pause{0};
 
-	uint32_t pause_counter{0};
-	uint8_t repeat_counter{0};
+	// streaming approach
+	std::unique_ptr<StreamOutput> stream{};
+	uint32_t bytes_read{0};
+	RequestSignalMessage sig_message{RequestSignalMessage::Signal::FillRequest};
+
+	// internal buffer
+	uint32_t bit_pos{0};
+	std::array<uint8_t, 256> ibuffer{};
+	const buffer_t<uint8_t> _buffer{
+		ibuffer.data(),
+		ibuffer.size(),
+		0};
+
+	// variables to help the processor execution routine
 	uint8_t s{0};
-	uint16_t bit_pos{0};
 	uint8_t cur_bit{0};
 	uint32_t sample_count{0};
 	uint32_t tone_phase{0}, phase{0}, sphase{0};
