@@ -20,11 +20,16 @@
  * Boston, MA 02110-1301, USA.
  */
 
+#pragma once
+
 #ifndef __FILE_H__
 #define __FILE_H__
 
 #include "ff.h"
+#include "io.hpp"
 
+#include "error.hpp"
+#include "result.hpp"
 #include "optional.hpp"
 
 #include <cstddef>
@@ -35,216 +40,203 @@
 #include <iterator>
 #include <vector>
 
-namespace std {
-namespace filesystem {
-
-struct filesystem_error {
-	constexpr filesystem_error() = default;
-
-	constexpr filesystem_error(
-		FRESULT fatfs_error
-	) : err { fatfs_error }
+namespace std
+{
+	namespace filesystem
 	{
-	}
 
-	constexpr filesystem_error(
-		unsigned int other_error
-	) : err { other_error }
-	{
-	}
+		struct path
+		{
+			using string_type = std::u16string;
+			using value_type = string_type::value_type;
 
-	uint32_t code() const {
-		return err;
-	}
-	
-	std::string what() const;
+			static constexpr value_type preferred_separator = u'/';
 
-private:
-	uint32_t err { FR_OK };
-};
+			path() : _s{}
+			{
+			}
 
-struct path {
-	using string_type = std::u16string;
-	using value_type = string_type::value_type;
+			path(
+				const path &p) : _s{p._s}
+			{
+			}
 
-	static constexpr value_type preferred_separator = u'/';
+			path(
+				path &&p) : _s{std::move(p._s)}
+			{
+			}
 
-	path(
-	) : _s { }
-	{
-	}
+			template <class Source>
+			path(
+				const Source &source) : path{std::begin(source), std::end(source)}
+			{
+			}
 
-	path(
-		const path& p
-	) : _s { p._s }
-	{
-	}
+			template <class InputIt>
+			path(
+				InputIt first,
+				InputIt last) : _s{first, last}
+			{
+			}
 
-	path(
-		path&& p
-	) : _s { std::move(p._s) }
-	{
-	}
+			path(
+				const char16_t *const s) : _s{s}
+			{
+			}
 
-	template<class Source>
-	path(
-		const Source& source
-	) : path { std::begin(source), std::end(source) }
-	{
-	}
+			path(
+				const TCHAR *const s) : _s{reinterpret_cast<const std::filesystem::path::value_type *>(s)}
+			{
+			}
 
-	template<class InputIt>
-	path(
-		InputIt first,
-		InputIt last
-	) : _s { first, last }
-	{
-	}
+			path &operator=(const path &p)
+			{
+				_s = p._s;
+				return *this;
+			}
 
-	path(
-		const char16_t* const s
-	) : _s { s }
-	{
-	}
+			path &operator=(path &&p)
+			{
+				_s = std::move(p._s);
+				return *this;
+			}
 
-	path(
-		const TCHAR* const s
-	) : _s { reinterpret_cast<const std::filesystem::path::value_type*>(s) }
-	{
-	}
+			path extension() const;
+			path filename() const;
+			path stem() const;
 
-	path& operator=(const path& p) {
-		_s = p._s;
-		return *this;
-	}
+			bool empty() const
+			{
+				return _s.empty();
+			}
 
-	path& operator=(path&& p) {
-		_s = std::move(p._s);
-		return *this;
-	}
+			const value_type *c_str() const
+			{
+				return native().c_str();
+			}
 
-	path extension() const;
-	path filename() const;
-	path stem() const;
+			const string_type &native() const
+			{
+				return _s;
+			}
 
-	bool empty() const {
-		return _s.empty();
-	}
+			std::string string() const;
 
-	const value_type* c_str() const {
-		return native().c_str();
-	}
+			path &operator+=(const path &p)
+			{
+				_s += p._s;
+				return *this;
+			}
 
-	const string_type& native() const {
-		return _s;
-	}
+			path &operator+=(const string_type &str)
+			{
+				_s += str;
+				return *this;
+			}
 
-	std::string string() const;
+			path &replace_extension(const path &replacement = path());
 
-	path& operator+=(const path& p) {
-		_s += p._s;
-		return *this;
-	}
+		private:
+			string_type _s;
+		};
 
-	path& operator+=(const string_type& str) {
-		_s += str;
-		return *this;
-	}
+		bool operator<(const path &lhs, const path &rhs);
+		bool operator>(const path &lhs, const path &rhs);
 
-	path& replace_extension(const path& replacement = path());
+		using file_status = BYTE;
 
-private:
-	string_type _s;
-};
+		static_assert(sizeof(path::value_type) == 2, "sizeof(std::filesystem::path::value_type) != 2");
+		static_assert(sizeof(path::value_type) == sizeof(TCHAR), "FatFs TCHAR size != std::filesystem::path::value_type");
 
-bool operator<(const path& lhs, const path& rhs);
-bool operator>(const path& lhs, const path& rhs);
+		struct space_info
+		{
+			static_assert(sizeof(std::uintmax_t) >= 8, "std::uintmax_t too small (<uint64_t)");
 
-using file_status = BYTE;
+			std::uintmax_t capacity;
+			std::uintmax_t free;
+			std::uintmax_t available;
+		};
 
-static_assert(sizeof(path::value_type) == 2, "sizeof(std::filesystem::path::value_type) != 2");
-static_assert(sizeof(path::value_type) == sizeof(TCHAR), "FatFs TCHAR size != std::filesystem::path::value_type");
+		struct directory_entry : public FILINFO
+		{
+			file_status status() const
+			{
+				return fattrib;
+			}
 
-struct space_info {
-	static_assert(sizeof(std::uintmax_t) >= 8, "std::uintmax_t too small (<uint64_t)");
+			std::uintmax_t size() const
+			{
+				return fsize;
+			};
 
-	std::uintmax_t capacity;
-	std::uintmax_t free;
-	std::uintmax_t available;
-};
+			const std::filesystem::path path() const noexcept { return {fname}; };
+		};
 
-struct directory_entry : public FILINFO {
-	file_status status() const {
-		return fattrib;
-	}
+		class directory_iterator
+		{
+			struct Impl
+			{
+				DIR dir;
+				directory_entry filinfo;
 
-	std::uintmax_t size() const {
-		return fsize;
-	};
+				~Impl()
+				{
+					f_closedir(&dir);
+				}
+			};
 
-	const std::filesystem::path path() const noexcept { return { fname }; };
-};
+			std::shared_ptr<Impl> impl{};
+			const path pattern{};
 
-class directory_iterator {
-	struct Impl {
-		DIR dir;
-		directory_entry filinfo;
+			friend bool operator!=(const directory_iterator &lhs, const directory_iterator &rhs);
 
-		~Impl() {
-			f_closedir(&dir);
-		}
-	};
+		public:
+			using difference_type = std::ptrdiff_t;
+			using value_type = directory_entry;
+			using pointer = const directory_entry *;
+			using reference = const directory_entry &;
+			using iterator_category = std::input_iterator_tag;
 
-	std::shared_ptr<Impl> impl { };
-	const path pattern { };
+			directory_iterator() noexcept {};
+			directory_iterator(std::filesystem::path path, std::filesystem::path wild);
 
-	friend bool operator!=(const directory_iterator& lhs, const directory_iterator& rhs);
+			~directory_iterator() {}
 
-public:
-	using difference_type = std::ptrdiff_t;
-	using value_type = directory_entry;
-	using pointer = const directory_entry*;
-	using reference = const directory_entry&;
-	using iterator_category = std::input_iterator_tag;
+			directory_iterator &operator++();
 
-	directory_iterator() noexcept { };
-	directory_iterator(std::filesystem::path path, std::filesystem::path wild);
-	
-	~directory_iterator() { }
+			reference operator*() const
+			{
+				// TODO: Exception or assert if impl == nullptr.
+				return impl->filinfo;
+			}
+		};
 
-	directory_iterator& operator++();
+		inline const directory_iterator &begin(const directory_iterator &iter) noexcept { return iter; };
+		inline directory_iterator end(const directory_iterator &) noexcept { return {}; };
 
-	reference operator*() const {
-		// TODO: Exception or assert if impl == nullptr.
-		return impl->filinfo;
-	}
-};
+		inline bool operator!=(const directory_iterator &lhs, const directory_iterator &rhs) { return lhs.impl != rhs.impl; };
 
-inline const directory_iterator& begin(const directory_iterator& iter) noexcept { return iter; };
-inline directory_iterator end(const directory_iterator&) noexcept { return { }; };
+		bool is_directory(const file_status s);
+		bool is_regular_file(const file_status s);
 
-inline bool operator!=(const directory_iterator& lhs, const directory_iterator& rhs) { return lhs.impl != rhs.impl; };
+		space_info space(const path &p);
 
-bool is_directory(const file_status s);
-bool is_regular_file(const file_status s);
-
-space_info space(const path& p);
-
-} /* namespace filesystem */
+	} /* namespace filesystem */
 } /* namespace std */
 
-struct FATTimestamp {
+struct FATTimestamp
+{
 	uint16_t FAT_date;
 	uint16_t FAT_time;
 };
 
-uint32_t delete_file(const std::filesystem::path& file_path);
-uint32_t rename_file(const std::filesystem::path& file_path, const std::filesystem::path& new_name);
-FATTimestamp file_created_date(const std::filesystem::path& file_path);
-uint32_t make_new_directory(const std::filesystem::path& dir_path);
+uint32_t delete_file(const std::filesystem::path &file_path);
+uint32_t rename_file(const std::filesystem::path &file_path, const std::filesystem::path &new_name);
+FATTimestamp file_created_date(const std::filesystem::path &file_path);
+uint32_t make_new_directory(const std::filesystem::path &dir_path);
 
-std::vector<std::filesystem::path> scan_root_files(const std::filesystem::path& directory, const std::filesystem::path& extension);
-std::vector<std::filesystem::path> scan_root_directories(const std::filesystem::path& directory);
+std::vector<std::filesystem::path> scan_root_files(const std::filesystem::path &directory, const std::filesystem::path &extension);
+std::vector<std::filesystem::path> scan_root_directories(const std::filesystem::path &directory);
 std::filesystem::path next_filename_stem_matching_pattern(std::filesystem::path filename_stem_pattern);
 
 /* Values added to FatFs FRESULT enum, values outside the FRESULT data type */
@@ -252,101 +244,53 @@ static_assert(sizeof(FIL::err) == 1, "FatFs FIL::err size not expected.");
 
 /* Dangerous to expose these, as FatFs native error values are byte-sized. However,
  * my filesystem_error implementation is fine with it. */
-#define FR_DISK_FULL	(0x100)
-#define FR_EOF          (0x101)
-#define FR_BAD_SEEK		(0x102)
-#define FR_UNEXPECTED	(0x103)
+#define FR_DISK_FULL (0x100)
+#define FR_EOF (0x101)
+#define FR_BAD_SEEK (0x102)
+#define FR_UNEXPECTED (0x103)
 
-class File {
+class File
+{
 public:
 	using Size = uint64_t;
 	using Offset = uint64_t;
 	using Timestamp = uint32_t;
-	using Error = std::filesystem::filesystem_error;
+	using FsError = Error;
 
-	template<typename T>
-	struct Result {
-		enum class Type {
-			Success,
-			Error,
-		} type;
-		union {
-			T value_;
-			Error error_;
-		};
-
-		bool is_ok() const {
-			return type == Type::Success;
-		}
-
-		bool is_error() const {
-			return type == Type::Error;
-		}
-
-		const T& value() const {
-			return value_;
-		}
-
-		Error error() const {
-			return error_;
-		}
-
-		Result() = delete;
-
-		constexpr Result(
-			T value
-		) : type { Type::Success },
-			value_ { value }
-		{
-		}
-
-		constexpr Result(
-			Error error
-		) : type { Type::Error },
-			error_ { error }
-		{
-		}
-
-		~Result() {
-			if( type == Type::Success ) {
-				value_.~T();
-			}
-		}
-	};
-
-	File() { };
+	File(){};
 	~File();
 
 	/* Prevent copies */
-	File(const File&) = delete;
-	File& operator=(const File&) = delete;
+	File(const File &) = delete;
+	File &operator=(const File &) = delete;
 
 	// TODO: Return Result<>.
-	Optional<Error> open(const std::filesystem::path& filename);
-	Optional<Error> append(const std::filesystem::path& filename);
-	Optional<Error> create(const std::filesystem::path& filename);
+	Optional<FsError> open(const std::filesystem::path &filename);
+	Optional<FsError> append(const std::filesystem::path &filename);
+	Optional<FsError> create(const std::filesystem::path &filename);
 
-	Result<Size> read(void* const data, const Size bytes_to_read);
-	Result<Size> write(const void* const data, const Size bytes_to_write);
-	
-	Result<Offset> seek(const uint64_t Offset);
+	Result<Size, FsError> read(void *const data, const Size bytes_to_read);
+	Result<Size, FsError> write(const void *const data, const Size bytes_to_write);
+
+	Result<Offset, FsError> seek(const uint64_t Offset);
 	Timestamp created_date();
 	Size size();
 
-	template<size_t N>
-	Result<Size> write(const std::array<uint8_t, N>& data) {
+	template <size_t N>
+	Result<Size, FsError> write(const std::array<uint8_t, N> &data)
+	{
 		return write(data.data(), N);
 	}
 
-	Optional<Error> write_line(const std::string& s);
+	Optional<FsError> write_line(const std::string &s);
 
 	// TODO: Return Result<>.
-	Optional<Error> sync();
+	Optional<FsError> sync();
 
 private:
-	FIL f { };
+	FIL f{};
 
-	Optional<Error> open_fatfs(const std::filesystem::path& filename, BYTE mode);
+	Optional<FsError> open_fatfs(const std::filesystem::path &filename, BYTE mode);
 };
 
-#endif/*__FILE_H__*/
+#endif /*__FILE_H__*/

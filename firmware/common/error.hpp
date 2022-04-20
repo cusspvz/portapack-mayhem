@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2016 Jared Boone, ShareBrained Technology, Inc.
+ * Copyright (C) 2015 Jared Boone, ShareBrained Technology, Inc.
+ * Copyright (C) 2016 Furrtek
  *
  * This file is part of PortaPack.
  *
@@ -19,25 +20,22 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __OPTIONAL_H__
-#define __OPTIONAL_H__
+#include <string>
 
-#include <utility>
+#pragma once
 
-template <typename T>
-class Optional
+struct Error
 {
-public:
-	constexpr Optional() : value_{}, valid_{false} {};
-	constexpr Optional(const T &value) : value_{value}, valid_{true} {};
-	constexpr Optional(T &&value) : value_{std::move(value)}, valid_{true} {};
+    constexpr Error() = default;
+    constexpr Error(uint32_t err) : err{err}
+    {
+    }
+    uint32_t code() const
+    {
+        return err;
+    }
 
-	bool is_valid() const { return valid_; };
-	T value() const { return value_; };
+    std::string what() const;
 
-private:
-	T value_;
-	bool valid_;
+    uint32_t err{0};
 };
-
-#endif /*__OPTIONAL_H__*/

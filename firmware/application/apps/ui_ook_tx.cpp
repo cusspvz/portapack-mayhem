@@ -339,99 +339,6 @@ namespace ui
 		return "0";
 	}
 
-	void OOKTxFilesView::refresh_list()
-	{
-		// auto reader = std::make_unique<FileReader>();
-
-		// file_list.clear();
-		// c_page = page;
-
-		// // List directories and files, put directories up top
-		// uint32_t count = 0;
-		// for (const auto &entry : std::filesystem::directory_iterator(u"OOK", u"*"))
-		// {
-		// 	if (std::filesystem::is_regular_file(entry.status()))
-		// 	{
-		// 		if (entry.path().string().length())
-		// 		{
-
-		// 			auto entry_extension = entry.path().extension().string();
-
-		// 			for (auto &c : entry_extension)
-		// 				c = toupper(c);
-
-		// 			if (entry_extension == ".OOK")
-		// 			{
-
-		// 				if (reader->open(u"/WAV/" + entry.path().native()))
-		// 				{
-		// 					if ((reader->channels() == 1) && (reader->bits_per_sample() == 8))
-		// 					{
-		// 						// sounds[c].ms_duration = reader->ms_duration();
-		// 						// sounds[c].path = u"WAV/" + entry.path().native();
-		// 						if (count >= (page - 1) * 100 && count < page * 100)
-		// 						{
-		// 							file_list.push_back(entry.path());
-		// 							if (file_list.size() == 100)
-		// 							{
-		// 								page++;
-		// 								break;
-		// 							}
-		// 						}
-		// 						count++;
-		// 					}
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// }
-
-		// if (!file_list.size())
-		// {
-		// 	// Hide widgets, show warning
-		// 	if (page == 1)
-		// 	{
-		// 		menu_view.hidden(true);
-		// 		text_empty.hidden(false);
-		// 		set_dirty();
-		// 	}
-		// 	else
-		// 	{
-		// 		page = 1;
-		// 		refresh_list();
-		// 		return;
-		// 	}
-		// }
-		// else
-		// {
-		// 	// Hide warning, show widgets
-		// 	menu_view.hidden(false);
-		// 	text_empty.hidden(true);
-		// 	set_dirty();
-
-		// 	menu_view.clear();
-
-		// 	for (size_t n = 0; n < file_list.size(); n++)
-		// 	{
-		// 		menu_view.add_item({file_list[n].string().substr(0, 30),
-		// 							ui::Color::white(),
-		// 							nullptr,
-		// 							[this]()
-		// 							{
-		// 								on_select_entry();
-		// 							}});
-		// 	}
-
-		// 	page_info.set("Page: " + to_string_dec_uint(c_page) + "    Sounds: " + to_string_dec_uint(file_list.size()));
-		// 	menu_view.set_highlighted(0); // Refresh
-		// }
-
-		// if (file_list.size() < 100)
-		// {
-		// 	page = 1;
-		// }
-	}
-
 	///////////////////////////////////////////////////////////////////////////////
 	// OOKTxDeBruijnView
 
@@ -890,11 +797,13 @@ namespace ui
 
 		transmitter_model.enable();
 
-		baseband::set_ook_data(
-			bitstream_length,
-			samples_per_bit,
-			repeat_cursor.total,
-			pause_between_symbols);
+		// TODO: we need to add a compatibilty layer later
+
+		// baseband::set_ook_data(
+		// 	bitstream_length,
+		// 	samples_per_bit,
+		// 	repeat_cursor.total,
+		// 	pause_between_symbols);
 
 		// we're only pushing the ui updates past the baseband comm to ensure
 		// we decrease the delay on TX frame burst cases

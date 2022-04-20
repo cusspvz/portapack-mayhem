@@ -19,25 +19,62 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __OPTIONAL_H__
-#define __OPTIONAL_H__
-
+#pragma once
 #include <utility>
 
-template <typename T>
-class Optional
+template <typename T, typename E>
+struct Result
 {
-public:
-	constexpr Optional() : value_{}, valid_{false} {};
-	constexpr Optional(const T &value) : value_{value}, valid_{true} {};
-	constexpr Optional(T &&value) : value_{std::move(value)}, valid_{true} {};
+    enum class Type
+    {
+        Success,
+        Error,
+    } type;
+    union
+    {
+        T value_;
+        E error_;
+    };
 
-	bool is_valid() const { return valid_; };
-	T value() const { return value_; };
+    bool is_ok() const
+    {
+        return type == Type::Success;
+    }
 
-private:
-	T value_;
-	bool valid_;
+    bool is_error() const
+    {
+        return type == Type::Error;
+    }
+
+    const T &value() const
+    {
+        return value_;
+    }
+
+    E error() const
+    {
+        return error_;
+    }
+
+    Result() = delete;
+
+    constexpr Result(
+        T value) : type{Type::Success},
+                   value_{value}
+    {
+    }
+
+    constexpr Result(
+        E error) : type{Type::Error},
+                   error_{error}
+    {
+    }
+
+    ~Result()
+    {
+        if (type == Type::Success)
+        {
+            value_.~T();
+        }
+    }
 };
-
-#endif /*__OPTIONAL_H__*/

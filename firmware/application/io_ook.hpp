@@ -19,25 +19,43 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __OPTIONAL_H__
-#define __OPTIONAL_H__
+#pragma once
 
-#include <utility>
+#include "io.hpp"
 
-template <typename T>
-class Optional
+#include <cstdint>
+
+enum OOKReaderReadType
 {
-public:
-	constexpr Optional() : value_{}, valid_{false} {};
-	constexpr Optional(const T &value) : value_{value}, valid_{true} {};
-	constexpr Optional(T &&value) : value_{std::move(value)}, valid_{true} {};
-
-	bool is_valid() const { return valid_; };
-	T value() const { return value_; };
-
-private:
-	T value_;
-	bool valid_;
+	OOK_READER_COMPLETED = 0,
+	OOK_READER_READING_FRAGMENT = 1,
+	OOK_READER_READING_PAUSES = 2,
 };
 
-#endif /*__OPTIONAL_H__*/
+using OOKReaderError = Error;
+
+class OOKReader : public stream::Reader
+{
+public:
+	OOKReader() = default;
+
+	OOKReader(const OOKReader &) = delete;
+	OOKReader &operator=(const OOKReader &) = delete;
+	OOKReader &operator=(OOKReader &&) = delete;
+
+	Result<uint64_t, OOKReaderError> read(void *const buffer, const uint64_t bytes) override;
+	uint64_t length();
+
+protected:
+	uint64_t bytes_read{0};
+
+	std::string &fragments;
+	uint8_t repeat_total{1};
+	uint16_t pause_total{0};
+
+	// ongoing read vars
+	OOKReaderReadType read_type = OOK_READER_READING_FRAGMENT;
+	uint8_t fragment_bit_count{0};
+	uint8_t repeat_bit_count{0};
+	uint8_t pause_bit_count{0};
+};

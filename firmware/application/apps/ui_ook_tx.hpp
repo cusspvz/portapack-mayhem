@@ -234,8 +234,6 @@ namespace ui
 		uint32_t get_frame_part_total();
 		std::string generate_frame_part(const uint32_t frame_part_index, const bool reversed);
 
-		void refresh_list();
-
 	private:
 		std::vector<std::filesystem::path>
 			file_list{};
@@ -243,14 +241,19 @@ namespace ui
 		uint32_t page = 1;
 		uint32_t c_page = 1;
 
-		void on_select_entry();
+		void on_file_changed(std::filesystem::path new_file_path);
 		void file_error();
+		std::filesystem::path file_path{};
 
 		// UI related
 
 		Labels labels{
 			{{1 * 8, 0 * 8}, "OOK file loader soon", Color::light_grey()},
 		};
+
+		Button button_open{
+			{0 * 8, 0 * 16, 10 * 8, 2 * 16},
+			"Open file"};
 	};
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -440,6 +443,31 @@ namespace ui
 			9,
 		};
 
+		///////////////////////////////////////////////////////////////////////
+		// processor related handlers
+
+		// // handle thread errors
+		// MessageHandlerRegistration message_handler_replay_thread_error{
+		// 	Message::ID::ReplayThreadDone,
+		// 	[this](const Message *const p)
+		// 	{
+		// 		const auto message = *reinterpret_cast<const ReplayThreadDoneMessage *>(p);
+		// 		this->handle_replay_thread_done(message.return_code);
+		// 	}};
+
+		// // handle FIFO buffer fill requests
+		// MessageHandlerRegistration message_handler_fifo_signal{
+		// 	Message::ID::RequestSignal,
+		// 	[this](const Message *const p)
+		// 	{
+		// 		const auto message = static_cast<const RequestSignalMessage *>(p);
+		// 		if (message->signal == RequestSignalMessage::Signal::FillRequest)
+		// 		{
+		// 			this->set_ready();
+		// 		}
+		// 	}};
+
+		// handle tx progress
 		MessageHandlerRegistration message_handler_tx_progress{
 			Message::ID::TXProgress,
 			[this](const Message *const p)

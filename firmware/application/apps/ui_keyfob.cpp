@@ -215,12 +215,14 @@ namespace ui
 		transmitter_model.set_baseband_bandwidth(1750000);
 		transmitter_model.enable();
 
-		baseband::set_ook_data(
-			bitstream_length,
-			subaru_samples_per_bit,
-			repeats,
-			200 // Pause symbols
-		);
+		// TODO: we need to add a compatibilty layer later
+
+		// baseband::set_ook_data(
+		// 	bitstream_length,
+		// 	subaru_samples_per_bit,
+		// 	repeats,
+		// 	200 // Pause symbols
+		// );
 	}
 
 	KeyfobView::KeyfobView(

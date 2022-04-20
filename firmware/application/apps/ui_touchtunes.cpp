@@ -186,12 +186,14 @@ namespace ui
 		transmitter_model.set_baseband_bandwidth(1750000);
 		transmitter_model.enable();
 
-		baseband::set_ook_data(
-			bitstream_length,
-			OOK_SAMPLERATE / 1766, // 560us
-			TOUCHTUNES_REPEATS,
-			100 // Pause
-		);
+		// TODO: we need to add a compatibilty layer later
+
+		// baseband::set_ook_data(
+		// 	bitstream_length,
+		// 	OOK_SAMPLERATE / 1766, // 560us
+		// 	TOUCHTUNES_REPEATS,
+		// 	100 // Pause
+		// );
 	}
 
 	TouchTunesView::TouchTunesView(

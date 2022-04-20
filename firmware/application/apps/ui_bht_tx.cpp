@@ -80,11 +80,13 @@ namespace ui
 			transmitter_model.set_sampling_rate(OOK_SAMPLERATE);
 			transmitter_model.enable();
 
-			baseband::set_ook_data(
-				bitstream_length,
-				EPAR_BIT_DURATION,
-				EPAR_REPEAT_COUNT,
-				encoder_defs[ENCODER_UM3750].pause_symbols);
+			// TODO: we need to add a compatibilty layer later
+
+			// baseband::set_ook_data(
+			// 	bitstream_length,
+			// 	EPAR_BIT_DURATION,
+			// 	EPAR_REPEAT_COUNT,
+			// 	encoder_defs[ENCODER_UM3750].pause_symbols);
 		}
 	}
 

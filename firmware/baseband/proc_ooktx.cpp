@@ -36,57 +36,30 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 	if (!configured)
 		return;
 
-	// We're going to treat the stream as a bitstream for the fragment's
-	// samples that this has to transmit. For this reason, we'll read only the
-	// necessary for this current buffer handling.
-	// That would be: 2048 samples / 8 / samples_per_bit
-	// Note: 2048 samples = sizeof(*buffer.p) = sizeof(C8) = 2*int8 = 2 bytes // buffer.count = 2048
-	if (stream)
-	{
-		const size_t bytes_to_read = buffer.count / 8 / 10 / samples_per_bit;
-		bytes_read += stream->read(_buffer.p, bytes_to_read);
-	}
-
 	for (size_t i = 0; i < buffer.count; i++)
 	{
 		// don't do nothing else in case we stop the transmission
-		if (configured)
-		{
 
-			// Synthesis at 2.28M/SAMPLES_PER_BIT {10} = 228kHz
-			if (s)
-				// don't change the cur_bit if we're still handling the rest of the bit's samples
-				s--;
+		// Synthesis at 2.28M/SAMPLES_PER_BIT {10} = 228kHz
+		if (s)
+			// don't change the cur_bit if we're still handling the rest of the bit's samples
+			s--;
+		else
+		{
+			s = 10 - 1;
+
+			// Samples per bit control
+			if (sample_count >= samples_per_bit)
+			{
+				if (configured)
+				{
+					process_cur_bit();
+				}
+				sample_count = 0;
+			}
 			else
 			{
-				s = 10 - 1;
-
-				// Samples per bit control
-				if (sample_count >= samples_per_bit)
-				{
-					// Prepare to gather the next bit
-					// or end in case we hit the ceilling
-					if (bit_pos >= bitstream_length)
-					{
-						// Transmission is now completed
-						cur_bit = 0;
-						txprogress_message.done = true;
-						shared_memory.application_queue.push(txprogress_message);
-						configured = false;
-					}
-					else
-					{
-						// Get next bit
-						cur_bit = (_buffer.p[bit_pos >> 3] << (bit_pos & 7)) & 0x80;
-						bit_pos++;
-					}
-
-					sample_count = 0;
-				}
-				else
-				{
-					sample_count++;
-				}
+				sample_count++;
 			}
 		}
 
@@ -106,6 +79,41 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 		}
 
 		buffer.p[i] = {re, im};
+	}
+}
+
+void OOKTxProcessor::process_cur_bit()
+{
+	// Prepare to gather the next bit
+	// or end in case we hit the ceilling
+	if (bit_pos >= bitstream_length)
+	{
+		// Transmission is now completed
+		cur_bit = 0;
+		txprogress_message.done = true;
+		shared_memory.application_queue.push(txprogress_message);
+		configured = false;
+	}
+	else
+	{
+		bit_pos--;
+
+		if (bit_pos == 0)
+		{
+
+			if (stream)
+			{
+				stream->read(&byte_sample, 1);
+				bytes_read++;
+			}
+			else
+			{
+				// if this gets into here, something might have failed
+				byte_sample = 0;
+			}
+		}
+
+		cur_bit = byte_sample & (1UL << (bit_pos - 1));
 	}
 }
 

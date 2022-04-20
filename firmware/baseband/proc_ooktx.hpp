@@ -35,6 +35,7 @@ class OOKTxProcessor : public BasebandProcessor
 {
 public:
 	void execute(const buffer_c8_t &buffer) override;
+	void process_cur_bit();
 
 	void on_message(const Message *const p) override;
 
@@ -51,16 +52,12 @@ private:
 	RequestSignalMessage sig_message{RequestSignalMessage::Signal::FillRequest};
 
 	// internal buffer
-	uint32_t bit_pos{0};
-	std::array<uint8_t, 256> ibuffer{};
-	const buffer_t<uint8_t> _buffer{
-		ibuffer.data(),
-		ibuffer.size(),
-		0};
+	uint8_t byte_sample{};
 
 	// variables to help the processor execution routine
 	uint8_t s{0};
 	uint8_t cur_bit{0};
+	uint8_t bit_pos{8};
 	uint32_t sample_count{0};
 	uint32_t tone_phase{0}, phase{0}, sphase{0};
 	int32_t tone_sample{0}, sig{0}, frq{0};
