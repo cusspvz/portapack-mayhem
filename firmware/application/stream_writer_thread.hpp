@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2016 Jared Boone, ShareBrained Technology, Inc.
- * Copyright (C) 2016 Furrtek
  *
  * This file is part of PortaPack.
  *
@@ -20,58 +19,52 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __REPLAY_THREAD_H__
-#define __REPLAY_THREAD_H__
+#ifndef __stream_writer_thread_H__
+#define __stream_writer_thread_H__
 
 #include "ch.h"
 
 #include "event_m0.hpp"
 
 #include "io.hpp"
+#include "error.hpp"
 #include "optional.hpp"
 
 #include <cstdint>
 #include <cstddef>
 #include <utility>
 
-class ReplayThread
+class StreamWriterThread
 {
 public:
-	ReplayThread(
-		std::unique_ptr<stream::Reader> reader,
-		size_t read_size,
+	StreamWriterThread(
+		std::unique_ptr<stream::Writer> writer,
+		size_t write_size,
 		size_t buffer_count,
-		bool *ready_signal,
-		std::function<void(uint32_t return_code)> terminate_callback);
-	~ReplayThread();
+		std::function<void()> success_callback,
+		std::function<void(Error)> error_callback);
+	~StreamWriterThread();
 
-	ReplayThread(const ReplayThread &) = delete;
-	ReplayThread(ReplayThread &&) = delete;
-	ReplayThread &operator=(const ReplayThread &) = delete;
-	ReplayThread &operator=(ReplayThread &&) = delete;
+	StreamWriterThread(const StreamWriterThread &) = delete;
+	StreamWriterThread(StreamWriterThread &&) = delete;
+	StreamWriterThread &operator=(const StreamWriterThread &) = delete;
+	StreamWriterThread &operator=(StreamWriterThread &&) = delete;
 
-	const StreamConfig &state() const
+	const CaptureConfig &state() const
 	{
 		return config;
-	};
-
-	enum replaythread_return
-	{
-		READ_ERROR = 0,
-		END_OF_FILE,
-		TERMINATED
-	};
+	}
 
 private:
-	StreamConfig config;
-	std::unique_ptr<stream::Reader> reader;
-	bool *ready_sig;
-	std::function<void(uint32_t return_code)> terminate_callback;
+	CaptureConfig config;
+	std::unique_ptr<stream::Writer> writer;
+	std::function<void()> success_callback;
+	std::function<void(Error)> error_callback;
 	Thread *thread{nullptr};
 
 	static msg_t static_fn(void *arg);
 
-	uint32_t run();
+	Optional<Error> run();
 };
 
-#endif /*__REPLAY_THREAD_H__*/
+#endif /*__stream_writer_thread_H__*/

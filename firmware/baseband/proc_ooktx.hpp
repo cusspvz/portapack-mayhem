@@ -37,19 +37,17 @@ public:
 	void execute(const buffer_c8_t &buffer) override;
 	void process_cur_bit();
 
-	void on_message(const Message *const p) override;
+	void on_message(const Message *const message) override;
 
 private:
 	BasebandThread baseband_thread{2280000, this, NORMALPRIO + 20, baseband::Direction::Transmit};
 
 	bool configured{false};
-	uint32_t bitstream_length{0};
 	uint32_t samples_per_bit{0};
 
 	// streaming approach
 	std::unique_ptr<StreamOutput> stream{};
 	uint32_t bytes_read{0};
-	RequestSignalMessage sig_message{RequestSignalMessage::Signal::FillRequest};
 
 	// internal buffer
 	uint8_t byte_sample{};
@@ -62,7 +60,11 @@ private:
 	uint32_t tone_phase{0}, phase{0}, sphase{0};
 	int32_t tone_sample{0}, sig{0}, frq{0};
 
+	void ook_config(const OOKConfigureMessage &message);
+	void stream_config(const StreamConfigMessage &message);
+
 	TXProgressMessage txprogress_message{};
+	RequestSignalMessage sig_message{RequestSignalMessage::Signal::FillRequest};
 };
 
 #endif

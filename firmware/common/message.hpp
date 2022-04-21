@@ -75,9 +75,9 @@ public:
 		SpectrumStreamingConfig = 16,
 		DisplaySleep = 17,
 		CaptureConfig = 18,
-		CaptureThreadDone = 19,
+		StreamWriterThreadDone = 19,
 		StreamConfig = 20,
-		ReplayThreadDone = 21,
+		StreamReaderThreadDone = 21,
 		AFSKRxConfigure = 22,
 		StatusRefresh = 23,
 		SamplerateConfig = 24,
@@ -978,14 +978,14 @@ class OOKConfigureMessage : public Message
 {
 public:
 	constexpr OOKConfigureMessage(
-		const uint32_t bitstream_length,
+		// const uint32_t bitstream_length,
 		const uint32_t samples_per_bit) : Message{ID::OOKConfigure},
-										  bitstream_length(bitstream_length),
+										  //   bitstream_length(bitstream_length),
 										  samples_per_bit(samples_per_bit)
 	{
 	}
 
-	const uint32_t bitstream_length;
+	// const uint32_t bitstream_length;
 	const uint32_t samples_per_bit;
 };
 
@@ -1127,11 +1127,11 @@ public:
 	const int8_t *data;
 };
 
-class CaptureThreadDoneMessage : public Message
+class StreamWriterThreadDoneMessage : public Message
 {
 public:
-	constexpr CaptureThreadDoneMessage(
-		uint32_t error = 0) : Message{ID::CaptureThreadDone},
+	constexpr StreamWriterThreadDoneMessage(
+		uint32_t error = 0) : Message{ID::StreamWriterThreadDone},
 							  error{error}
 	{
 	}
@@ -1139,11 +1139,11 @@ public:
 	uint32_t error;
 };
 
-class ReplayThreadDoneMessage : public Message
+class StreamReaderThreadDoneMessage : public Message
 {
 public:
-	constexpr ReplayThreadDoneMessage(
-		uint32_t return_code = 0) : Message{ID::ReplayThreadDone},
+	constexpr StreamReaderThreadDoneMessage(
+		uint32_t return_code = 0) : Message{ID::StreamReaderThreadDone},
 									return_code{return_code}
 	{
 	}

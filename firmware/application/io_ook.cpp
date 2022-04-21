@@ -21,12 +21,27 @@
 
 #include "io_ook.hpp"
 
-uint64_t OOKReader::length()
-{
-	return (fragments.length() + pause_total) * repeat_total;
-};
+// uint64_t OOKEncoderReader::length()
+// {
+// 	return (frame_fragments.length() + pause_total) * repeat_total;
+// };
 
-Result<uint64_t, OOKReaderError> OOKReader::read(void *const buffer, const uint64_t bytes)
+void OOKEncoderReader::reset()
+{
+	bytes_read = 0;
+
+	// repetition and pauses
+	repeat_total = 1;
+	_repeat_bit_count = 0;
+	pause_total = 0;
+	_pause_bit_count = 0;
+
+	// ongoing read vars
+	_fragment_bit_count = 0;
+	_read_type = OOK_READER_READING_FRAGMENT;
+}
+
+Result<uint64_t, Error> OOKEncoderReader::read(void *const buffer, const uint64_t bytes)
 {
 	// assuming 8bit buffer array
 	// TODO: we might need to measure the bit size of the buffer
@@ -34,50 +49,56 @@ Result<uint64_t, OOKReaderError> OOKReader::read(void *const buffer, const uint6
 	uint8_t *rbuff = (uint8_t *)buffer;
 
 	// start filling the buffer
-	for (size_t byte_i = 0; byte_i < sizeof(rbuff); byte_i++)
+	for (size_t byte_i = 0; byte_i < bytes; byte_i++)
 	{
 		uint8_t byte = 0;
 
-		if (read_type != OOK_READER_COMPLETED)
+		if (_read_type != OOK_READER_COMPLETED)
 		{
 			for (uint8_t bit = 8; bit > 0; bit--)
 			{
 				bool turn_bit_on = false;
 
-				if (read_type == OOK_READER_READING_FRAGMENT)
+				if (_read_type == OOK_READER_READING_FRAGMENT)
 				{
-					turn_bit_on = fragments[fragment_bit_count] == '1';
+					if (_fragment_bit_count == 0 && on_before_frame_fragment_usage)
+					{
+						// Allow the app to generate the fragment on demand, or at a single shot
+						on_before_frame_fragment_usage(*this);
+					};
 
-					fragment_bit_count++;
+					turn_bit_on = frame_fragments[_fragment_bit_count] == '1';
+
+					_fragment_bit_count++;
 
 					// if completed, jump to either a pause or completed
-					if (fragment_bit_count == fragments.length())
+					if (_fragment_bit_count == frame_fragments.length())
 					{
-						if (repeat_bit_count < repeat_total)
+						if (_repeat_bit_count < repeat_total)
 						{
 							// start pause
-							pause_bit_count = 0;
-							read_type = OOK_READER_READING_PAUSES;
+							_pause_bit_count = 0;
+							_read_type = OOK_READER_READING_PAUSES;
 						}
 						else
 						{
 							// complete
-							read_type = OOK_READER_COMPLETED;
+							_read_type = OOK_READER_COMPLETED;
 						}
 					}
 				}
-				else if (read_type == OOK_READER_READING_PAUSES)
+				else if (_read_type == OOK_READER_READING_PAUSES)
 				{
 					// pause doesnt save anything in the bit
 
-					pause_bit_count++;
+					_pause_bit_count++;
 
 					// if pause is completed, jump to the next fragment
-					if (pause_bit_count == pause_total)
+					if (_pause_bit_count == pause_total)
 					{
-						fragment_bit_count = 0;
-						read_type = OOK_READER_READING_FRAGMENT;
-						repeat_bit_count++;
+						_fragment_bit_count = 0;
+						_read_type = OOK_READER_READING_FRAGMENT;
+						_repeat_bit_count++;
 					}
 				}
 
@@ -93,5 +114,5 @@ Result<uint64_t, OOKReaderError> OOKReader::read(void *const buffer, const uint6
 		rbuff[byte_i] = byte;
 	}
 
-	return bytes_read;
+	return {static_cast<size_t>(bytes_read)};
 }

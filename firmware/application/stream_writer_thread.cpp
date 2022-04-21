@@ -19,72 +19,84 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include "capture_thread.hpp"
+#include "stream_writer_thread.hpp"
 
 #include "baseband_api.hpp"
 #include "buffer_exchange.hpp"
 
-struct BasebandCapture {
-	BasebandCapture(CaptureConfig* const config) {
+struct BasebandCapture
+{
+	BasebandCapture(CaptureConfig *const config)
+	{
 		baseband::capture_start(config);
 	}
 
-	~BasebandCapture() {
+	~BasebandCapture()
+	{
 		baseband::capture_stop();
 	}
 };
 
-// CaptureThread //////////////////////////////////////////////////////////
+// StreamWriterThread //////////////////////////////////////////////////////////
 
-CaptureThread::CaptureThread(
+StreamWriterThread::StreamWriterThread(
 	std::unique_ptr<stream::Writer> writer,
 	size_t write_size,
 	size_t buffer_count,
 	std::function<void()> success_callback,
-	std::function<void(File::Error)> error_callback
-) : config { write_size, buffer_count },
-	writer { std::move(writer) },
-	success_callback { std::move(success_callback) },
-	error_callback { std::move(error_callback) }
+	std::function<void(Error)> error_callback) : config{write_size, buffer_count},
+												 writer{std::move(writer)},
+												 success_callback{std::move(success_callback)},
+												 error_callback{std::move(error_callback)}
 {
 	// Need significant stack for FATFS
-	thread = chThdCreateFromHeap(NULL, 1024, NORMALPRIO + 10, CaptureThread::static_fn, this);
+	thread = chThdCreateFromHeap(NULL, 1024, NORMALPRIO + 10, StreamWriterThread::static_fn, this);
 }
 
-CaptureThread::~CaptureThread() {
-	if( thread ) {
+StreamWriterThread::~StreamWriterThread()
+{
+	if (thread)
+	{
 		chThdTerminate(thread);
 		chThdWait(thread);
 		thread = nullptr;
 	}
 }
 
-msg_t CaptureThread::static_fn(void* arg) {
-	auto obj = static_cast<CaptureThread*>(arg);
+msg_t StreamWriterThread::static_fn(void *arg)
+{
+	auto obj = static_cast<StreamWriterThread *>(arg);
 	const auto error = obj->run();
-	if( error.is_valid() && obj->error_callback ) {
+	if (error.is_valid() && obj->error_callback)
+	{
 		obj->error_callback(error.value());
-	} else {
-		if( obj->success_callback ) {
+	}
+	else
+	{
+		if (obj->success_callback)
+		{
 			obj->success_callback();
 		}
 	}
 	return 0;
 }
 
-Optional<File::Error> CaptureThread::run() {
-	BasebandCapture capture { &config };
-	BufferExchange buffers { &config };
+Optional<Error> StreamWriterThread::run()
+{
+	BasebandCapture capture{&config};
+	BufferExchange buffers{&config};
 
-	while( !chThdShouldTerminate() ) {
+	while (!chThdShouldTerminate())
+	{
 		auto buffer = buffers.get();
 		auto write_result = writer->write(buffer->data(), buffer->size());
-		if( write_result.is_error() ) {
+		if (write_result.is_error())
+		{
 			return write_result.error();
 		}
 		buffer->empty();
 		buffers.put(buffer);
 	}
 
-	return { };
+	return {};
 }

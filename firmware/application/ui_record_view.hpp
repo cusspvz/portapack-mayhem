@@ -25,7 +25,7 @@
 #include "ui_widget.hpp"
 #include "file.hpp"
 
-#include "capture_thread.hpp"
+#include "stream_writer_thread.hpp"
 #include "signal.hpp"
 
 #include "bitmap.hpp"
@@ -76,7 +76,7 @@ namespace ui
 		void on_tick_second();
 		void update_status_display();
 
-		void handle_capture_thread_done(const File::FsError error);
+		void handle_stream_writer_thread_done(const File::FsError error);
 		void handle_error(const File::FsError error);
 
 		// bool pitch_rssi_enabled = false;
@@ -124,14 +124,14 @@ namespace ui
 			"",
 		};
 
-		std::unique_ptr<CaptureThread> capture_thread{};
+		std::unique_ptr<StreamWriterThread> stream_writer_thread{};
 
-		MessageHandlerRegistration message_handler_capture_thread_error{
-			Message::ID::CaptureThreadDone,
+		MessageHandlerRegistration message_handler_stream_writer_thread_error{
+			Message::ID::StreamWriterThreadDone,
 			[this](const Message *const p)
 			{
-				const auto message = *reinterpret_cast<const CaptureThreadDoneMessage *>(p);
-				this->handle_capture_thread_done(message.error);
+				const auto message = *reinterpret_cast<const StreamWriterThreadDoneMessage *>(p);
+				this->handle_stream_writer_thread_done(message.error);
 			}};
 	};
 

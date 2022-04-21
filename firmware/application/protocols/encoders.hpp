@@ -35,9 +35,6 @@ namespace encoders
 #define OOK_SAMPLERATE 2280000U
 #define OOK_DEFAULT_STEP 8 // 70 kHz carrier frequency
 
-	size_t make_bitstream(std::string &fragments);
-	void bitstream_append(size_t &bitstream_length, uint32_t bit_count, uint32_t bits);
-
 	struct encoder_def_t
 	{
 		// Encoder details
@@ -61,6 +58,10 @@ namespace encoders
 		uint32_t default_clk_speed; // Default encoder clk frequency (often set by shitty resistor)
 		uint16_t pause_symbols;		// Length of pause between repeats in symbols
 	};
+
+	size_t make_bitstream(std::string &fragments);
+	void bitstream_append(size_t &bitstream_length, uint32_t bit_count, uint32_t bits);
+	std::string generate_frame_fragments(const encoder_def_t *encoder_def, const uint8_t selected_symbol_indexes[32], const bool reversed);
 
 	// Warning ! If this is changed, make sure that ENCODER_UM3750 is still valid !
 	constexpr encoder_def_t encoder_defs[ENC_TYPES_COUNT] = {

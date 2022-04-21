@@ -27,7 +27,7 @@
 #include "ui_widget.hpp"
 #include "ui_navigation.hpp"
 #include "ui_receiver.hpp"
-#include "replay_thread.hpp"
+#include "stream_reader_thread.hpp"
 #include "ui_spectrum.hpp"
 
 #include <string>
@@ -72,11 +72,11 @@ namespace ui
 		void stop(const bool do_loop);
 		bool is_active() const;
 		void set_ready();
-		void handle_replay_thread_done(const uint32_t return_code);
+		void handle_stream_reader_thread_done(const uint32_t return_code);
 		void file_error();
 
 		std::filesystem::path file_path{};
-		std::unique_ptr<ReplayThread> replay_thread{};
+		std::unique_ptr<StreamReaderThread> stream_reader_thread{};
 		bool ready_signal{false};
 
 		Labels labels{
@@ -128,12 +128,12 @@ namespace ui
 
 		spectrum::WaterfallWidget waterfall{};
 
-		MessageHandlerRegistration message_handler_replay_thread_error{
-			Message::ID::ReplayThreadDone,
+		MessageHandlerRegistration message_handler_stream_reader_thread_error{
+			Message::ID::StreamReaderThreadDone,
 			[this](const Message *const p)
 			{
-				const auto message = *reinterpret_cast<const ReplayThreadDoneMessage *>(p);
-				this->handle_replay_thread_done(message.return_code);
+				const auto message = *reinterpret_cast<const StreamReaderThreadDoneMessage *>(p);
+				this->handle_stream_reader_thread_done(message.return_code);
 			}};
 
 		MessageHandlerRegistration message_handler_fifo_signal{

@@ -28,6 +28,8 @@
 #include "encoders.hpp"
 #include "de_bruijn_cusspvz.hpp"
 #include "io_file.hpp"
+#include "io_ook.hpp"
+#include "stream_reader_thread.hpp"
 
 using namespace encoders;
 
@@ -119,17 +121,10 @@ namespace ui
 		void focus() override;
 		void on_show() override;
 
-		uint32_t get_repeat_total();
-		uint32_t get_frame_part_total();
-		std::string generate_frame_part(const uint32_t frame_part_index, const bool reversed);
-
-		const char *get_symbols_bit_fragments(const uint8_t index, const bool reversed);
-		uint32_t samples_per_bit();
 		uint16_t repeat_skip_bits_count();
 		const encoder_def_t *encoder_def{};
 		void reset_symfield();
 		void check_if_encoder_is_vuln_to_debruijn();
-		void check_if_encoder_can_be_reversed();
 
 		de_bruijn debruijn_sequencer;
 		void reset_debruijn();
@@ -230,30 +225,28 @@ namespace ui
 		OOKTxFilesView(NavigationView &nav, Rect parent_rect);
 		void focus() override;
 
-		uint32_t get_repeat_total();
-		uint32_t get_frame_part_total();
-		std::string generate_frame_part(const uint32_t frame_part_index, const bool reversed);
-
-	private:
-		std::vector<std::filesystem::path>
-			file_list{};
-		uint32_t playing_id{};
-		uint32_t page = 1;
-		uint32_t c_page = 1;
-
-		void on_file_changed(std::filesystem::path new_file_path);
-		void file_error();
 		std::filesystem::path file_path{};
+
+		// private:
+		void on_file_changed(std::filesystem::path new_file_path);
 
 		// UI related
 
 		Labels labels{
-			{{1 * 8, 0 * 8}, "OOK file loader soon", Color::light_grey()},
+
+			{{14 * 8, 0 * 8}, "Sh Pulse:", Color::light_grey()},
+			{{28 * 8, 0 * 8}, "us", Color::light_grey()},
 		};
 
 		Button button_open{
 			{0 * 8, 0 * 16, 10 * 8, 2 * 16},
 			"Open file"};
+
+		OptionsField options_period_per_bit{
+			{23 * 8, 0 * 8},
+			5,
+			PERIODS_PER_SYMBOL,
+		};
 	};
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -270,11 +263,6 @@ namespace ui
 
 		void reset_debruijn();
 		void reset_symfield();
-
-		uint32_t samples_per_bit();
-		uint32_t get_repeat_total();
-		uint32_t get_frame_part_total();
-		std::string generate_frame_part(const uint32_t frame_part_index, const bool reversed);
 
 		// private:
 		de_bruijn debruijn_sequencer;
@@ -371,17 +359,22 @@ namespace ui
 		std::string err;
 
 		// TX related
+		void set_ready();
+		std::unique_ptr<StreamReaderThread>
+			stream_reader_thread{};
+		bool ready_signal{false};
+		void handle_stream_reader_thread_done(const uint32_t return_code);
 
 		void progress_reset();
 		void progress_update();
-		void draw_waveform();
+		// void draw_waveform();
 
 		void reset_cursors();
-		void generate_frame_part();
+		void generate_stream();
 
 		void start_tx();
-		void on_tx_progress(const uint32_t progress, const bool done);
-		void tx();
+		void on_tx_progress(const TXProgressMessage message);
+		void tx(std::unique_ptr<stream::Reader> reader, uint32_t samples_per_bit);
 		void stop_tx();
 
 		// general
@@ -390,9 +383,8 @@ namespace ui
 		cursor repeat_cursor{};		 // cursor to navigate through the repeat parts in case it has more than one
 
 		std::string frame_fragments = "0";
-		uint32_t samples_per_bit;
 		uint32_t pause_between_symbols;
-		int16_t waveform_buffer[550];
+		// int16_t waveform_buffer[550];
 
 		// UI related
 		NavigationView &nav_;
@@ -409,7 +401,7 @@ namespace ui
 		};
 
 		Labels labels{
-			{{1 * 8, 18 * 8}, "Waveform:", Color::light_grey()},
+			// {{1 * 8, 18 * 8}, "Waveform:", Color::light_grey()},
 		};
 
 		Checkbox checkbox_reversed{
@@ -419,14 +411,14 @@ namespace ui
 			true,
 		};
 
-		Waveform waveform{
-			{0, 21 * 8, 30 * 8, 32},
-			waveform_buffer,
-			0,
-			0,
-			true,
-			Color::yellow(),
-		};
+		// Waveform waveform{
+		// 	{0, 21 * 8, 30 * 8, 32},
+		// 	waveform_buffer,
+		// 	0,
+		// 	0,
+		// 	true,
+		// 	Color::yellow(),
+		// };
 
 		Text text_progress{
 			{1 * 8, 13 * 16, 30 * 8, 16},
@@ -446,26 +438,26 @@ namespace ui
 		///////////////////////////////////////////////////////////////////////
 		// processor related handlers
 
-		// // handle thread errors
-		// MessageHandlerRegistration message_handler_replay_thread_error{
-		// 	Message::ID::ReplayThreadDone,
-		// 	[this](const Message *const p)
-		// 	{
-		// 		const auto message = *reinterpret_cast<const ReplayThreadDoneMessage *>(p);
-		// 		this->handle_replay_thread_done(message.return_code);
-		// 	}};
+		// handle thread completion and errors
+		MessageHandlerRegistration message_handler_stream_reader_thread_error{
+			Message::ID::StreamReaderThreadDone,
+			[this](const Message *const p)
+			{
+				const auto message = *reinterpret_cast<const StreamReaderThreadDoneMessage *>(p);
+				this->handle_stream_reader_thread_done(message.return_code);
+			}};
 
-		// // handle FIFO buffer fill requests
-		// MessageHandlerRegistration message_handler_fifo_signal{
-		// 	Message::ID::RequestSignal,
-		// 	[this](const Message *const p)
-		// 	{
-		// 		const auto message = static_cast<const RequestSignalMessage *>(p);
-		// 		if (message->signal == RequestSignalMessage::Signal::FillRequest)
-		// 		{
-		// 			this->set_ready();
-		// 		}
-		// 	}};
+		// handle FIFO buffer fill requests
+		MessageHandlerRegistration message_handler_fifo_signal{
+			Message::ID::RequestSignal,
+			[this](const Message *const p)
+			{
+				const auto message = static_cast<const RequestSignalMessage *>(p);
+				if (message->signal == RequestSignalMessage::Signal::FillRequest)
+				{
+					this->set_ready();
+				}
+			}};
 
 		// handle tx progress
 		MessageHandlerRegistration message_handler_tx_progress{
@@ -473,7 +465,7 @@ namespace ui
 			[this](const Message *const p)
 			{
 				const auto message = *reinterpret_cast<const TXProgressMessage *>(p);
-				this->on_tx_progress(message.progress, message.done);
+				this->on_tx_progress(message);
 			},
 		};
 	};

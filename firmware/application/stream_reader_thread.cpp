@@ -20,7 +20,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include "replay_thread.hpp"
+#include "stream_reader_thread.hpp"
 
 #include "baseband_api.hpp"
 #include "buffer_exchange.hpp"
@@ -38,9 +38,9 @@ struct BasebandReplay
 	}
 };
 
-// ReplayThread ///////////////////////////////////////////////////////////
+// StreamReaderThread ///////////////////////////////////////////////////////////
 
-ReplayThread::ReplayThread(
+StreamReaderThread::StreamReaderThread(
 	std::unique_ptr<stream::Reader> reader,
 	size_t read_size,
 	size_t buffer_count,
@@ -51,10 +51,10 @@ ReplayThread::ReplayThread(
 																	terminate_callback{std::move(terminate_callback)}
 {
 	// Need significant stack for FATFS
-	thread = chThdCreateFromHeap(NULL, 1024, NORMALPRIO + 10, ReplayThread::static_fn, this);
+	thread = chThdCreateFromHeap(NULL, 1024, NORMALPRIO + 10, StreamReaderThread::static_fn, this);
 }
 
-ReplayThread::~ReplayThread()
+StreamReaderThread::~StreamReaderThread()
 {
 	if (thread)
 	{
@@ -64,9 +64,9 @@ ReplayThread::~ReplayThread()
 	}
 }
 
-msg_t ReplayThread::static_fn(void *arg)
+msg_t StreamReaderThread::static_fn(void *arg)
 {
-	auto obj = static_cast<ReplayThread *>(arg);
+	auto obj = static_cast<StreamReaderThread *>(arg);
 	const auto return_code = obj->run();
 	if (obj->terminate_callback)
 	{
@@ -75,7 +75,7 @@ msg_t ReplayThread::static_fn(void *arg)
 	return 0;
 }
 
-uint32_t ReplayThread::run()
+uint32_t StreamReaderThread::run()
 {
 	BasebandReplay replay{&config};
 	BufferExchange buffers{&config};
@@ -132,7 +132,7 @@ uint32_t ReplayThread::run()
 		{
 			if (read_result.value() == 0)
 			{
-				return END_OF_FILE;
+				return END_OF_STREAM;
 			}
 		}
 

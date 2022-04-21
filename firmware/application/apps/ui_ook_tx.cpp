@@ -24,14 +24,15 @@
 #include "ui_ook_tx.hpp"
 #include "baseband_api.hpp"
 #include "string_format.hpp"
+#include "ui_fileman.hpp"
 
 using namespace portapack;
 
 namespace ui
 {
 
-	// 	///////////////////////////////////////////////////////////////////////////////
-	// 	// OOKTxGeneratorView
+	///////////////////////////////////////////////////////////////////////////////
+	// OOKTxGeneratorView
 
 	OOKTxGeneratorView::OOKTxGeneratorView(NavigationView &nav, Rect parent_rect)
 	{
@@ -73,7 +74,6 @@ namespace ui
 
 			reset_symfield();
 			check_if_encoder_is_vuln_to_debruijn();
-			check_if_encoder_can_be_reversed();
 
 			// reset the debruijn sequencer in case the encoder is vulnerable
 			if (encoder_def->is_vuln_to_debruijn)
@@ -123,20 +123,10 @@ namespace ui
 				field_frameduration.set_value(new_value * encoder_def->word_length, false);
 		};
 
-		// Selecting word duration changes input clock and symbol duration
-		field_frameduration.on_change = [this](int32_t value)
-		{
-			// value is in us, new_value is in kHz
-			int32_t new_value = (value * 1000) / (encoder_def->word_length * options_period_per_symbol.selected_index_value());
-			if (new_value != field_clk.value())
-				field_clk.set_value(1000000 / new_value, false);
-		};
-
 		options_period_per_symbol.on_change = [this](size_t, int32_t)
 		{
 			// trigger the change on both fields
 			field_clk.on_change(field_clk.value());
-			field_frameduration.on_change(field_frameduration.value());
 		};
 
 		options_encoder.set_options(enc_options);
@@ -164,21 +154,6 @@ namespace ui
 
 		if (on_status_change)
 			on_status_change("");
-	}
-
-	void OOKTxGeneratorView::check_if_encoder_can_be_reversed()
-	// TODO: need to review this piece
-	{
-		// if the selected tx method is DEBRUIJN, check if the encoder is vulnerable to DEBRUIJN
-		if (sizeof(encoder_def->symbols_bit_fragments) == 2)
-		{
-			// checkbox_reversed.set_focusable(true);
-		}
-		else
-		{
-			// checkbox_reversed.set_focusable(false);
-			// checkbox_reversed.set_value(false);
-		}
 	}
 
 	void OOKTxGeneratorView::reset_symfield()
@@ -226,104 +201,122 @@ namespace ui
 		// debruijn_sequencer.generate();
 	}
 
-	const char *OOKTxGeneratorView::get_symbols_bit_fragments(const uint8_t index, const bool reversed)
-	{
-		if (reversed)
-		{
-			return encoder_def->symbols_bit_fragments[(index == 0) ? 1 : 0];
-		}
+	// const char *OOKTxGeneratorView::get_symbols_bit_fragments(const uint8_t index, const bool reversed)
+	// {
+	// 	if (reversed)
+	// 	{
+	// 		return encoder_def->symbols_bit_fragments[(index == 0) ? 1 : 0];
+	// 	}
 
-		return encoder_def->symbols_bit_fragments[index];
-	}
+	// 	return encoder_def->symbols_bit_fragments[index];
+	// }
 
-	uint32_t OOKTxGeneratorView::get_repeat_total()
-	{
-		switch (options_tx_method.selected_index_value())
-		{
-		case TX_MODE_MANUAL:
-		case TX_MODE_BRUTEFORCE:
-			return field_repeat_min.value();
+	// uint32_t OOKTxGeneratorView::get_repeat_total()
+	// {
+	// 	switch (options_tx_method.selected_index_value())
+	// 	{
+	// 	case TX_MODE_MANUAL:
+	// 	case TX_MODE_BRUTEFORCE:
+	// 		return field_repeat_min.value();
 
-		case TX_MODE_DEBRUIJN:
-			return 1;
-		}
+	// 	case TX_MODE_DEBRUIJN:
+	// 		return 1;
+	// 	}
 
-		return 1;
-	}
+	// 	return 1;
+	// }
 
-	uint32_t OOKTxGeneratorView::get_frame_part_total()
-	{
-		switch (options_tx_method.selected_index_value())
-		{
-		case TX_MODE_BRUTEFORCE:
-			return symfield_word.get_possibilities_count();
+	// uint32_t OOKTxGeneratorView::get_frame_part_total()
+	// {
+	// 	switch (options_tx_method.selected_index_value())
+	// 	{
+	// 	case TX_MODE_BRUTEFORCE:
+	// 		return symfield_word.get_possibilities_count();
 
-		case TX_MODE_DEBRUIJN: // check the size of the whole debruijn sequence
-			return debruijn_sequencer.get_total_parts();
+	// 	case TX_MODE_DEBRUIJN: // check the size of the whole debruijn sequence
+	// 		return debruijn_sequencer.get_total_parts();
 
-		case TX_MODE_MANUAL:
-			return 1;
-		}
+	// 	case TX_MODE_MANUAL:
+	// 		return 1;
+	// 	}
 
-		return 1;
-	}
+	// 	return 1;
+	// }
 
-	std::string OOKTxGeneratorView::generate_frame_part(const uint32_t frame_part_index, const bool reversed)
-	{
-		int32_t mode = options_tx_method.selected_index_value();
+	// void OOKTxGeneratorView::reset_reader()
+	// {
+	// 	uint8_t selected_symbol_indexes[encoder_def->word_length]{};
 
-		// NOTE: bruteforce might need to be check to enforce the frame_part_index
-		// TODO: :this:
+	// 	// extract values from symfield
+	// 	for (uint32_t i = 0; i < encoder_def->word_length; i++)
+	// 		selected_symbol_indexes[i] = symfield_word.get_sym(i);
 
-		if (mode == TX_MODE_MANUAL || mode == TX_MODE_BRUTEFORCE)
-		{
-			std::string frame_fragments = "";
+	// 	// apply to the current reader
+	// 	reader.get()->reset(encoder_def, selected_symbol_indexes, false);
+	// };
 
-			for (uint8_t i = 0; i < encoder_def->word_length; i++)
-				if (encoder_def->word_format[i] == 'S')
-					frame_fragments += encoder_def->sync_bit_fragment;
-				else
-					frame_fragments += get_symbols_bit_fragments(symfield_word.get_sym(i), reversed);
+	// std::string OOKTxGeneratorView::generate_frame_part(const uint32_t frame_part_index, const bool reversed)
+	// {
+	// 	int32_t mode = options_tx_method.selected_index_value();
 
-			return frame_fragments;
-		}
+	// 	// NOTE: bruteforce might need to be check to enforce the frame_part_index
+	// 	// TODO: :this:
 
-		if (mode == TX_MODE_DEBRUIJN)
-		{
-			if (!encoder_def->is_vuln_to_debruijn)
-				return "0";
+	// 	if (mode == TX_MODE_MANUAL || mode == TX_MODE_BRUTEFORCE)
+	// 	{
+	// 		std::string frame_fragments = "";
 
-			std::string frame_fragments = "";
-			std::string frame_part = debruijn_sequencer.get_part(frame_part_index);
+	// 		for (uint8_t i = 0; i < encoder_def->word_length; i++)
+	// 			if (encoder_def->word_format[i] == 'S')
+	// 				frame_fragments += encoder_def->sync_bit_fragment;
+	// 			else
+	// 				frame_fragments += get_symbols_bit_fragments(symfield_word.get_sym(i), reversed);
 
-			for (uint8_t i = 0; i < frame_part.length(); i++)
-			{
-				frame_fragments += get_symbols_bit_fragments(("1" == &frame_part[i]) ? 1 : 0, reversed);
-			}
+	// 		return frame_fragments;
+	// 	}
 
-			return frame_fragments;
-		}
+	// 	if (mode == TX_MODE_DEBRUIJN)
+	// 	{
+	// 		if (!encoder_def->is_vuln_to_debruijn)
+	// 			return "0";
 
-		return "0";
-	}
+	// 		std::string frame_fragments = "";
+	// 		std::string frame_part = debruijn_sequencer.get_part(frame_part_index);
 
-	uint32_t OOKTxGeneratorView::samples_per_bit()
-	{
-		return OOK_SAMPLERATE / ((field_clk.value() * 1000) / (options_period_per_symbol.selected_index_value() / encoder_def->bit_fragments_length_per_symbol));
-	}
+	// 		for (uint8_t i = 0; i < frame_part.length(); i++)
+	// 		{
+	// 			frame_fragments += get_symbols_bit_fragments(("1" == &frame_part[i]) ? 1 : 0, reversed);
+	// 		}
+
+	// 		return frame_fragments;
+	// 	}
+
+	// 	return "0";
+	// }
 
 	// 	///////////////////////////////////////////////////////////////////////////////
 	// 	// OOKTxFilesView
 
 	OOKTxFilesView::OOKTxFilesView(
-		NavigationView &, Rect parent_rect)
+		NavigationView &nav, Rect parent_rect)
 	{
 		set_parent_rect(parent_rect);
 		hidden(true);
 
 		add_children({
 			&labels,
+			&options_period_per_bit,
+			&button_open,
 		});
+
+		button_open.on_select = [this, &nav](Button &)
+		{
+			auto open_view = nav.push<FileLoadView>(".ASK");
+			open_view->on_changed = [this](std::filesystem::path new_file_path)
+			{
+				on_file_changed(new_file_path);
+			};
+		};
 	}
 
 	void OOKTxFilesView::focus()
@@ -331,12 +324,66 @@ namespace ui
 		// field_debug.focus();
 	}
 
-	uint32_t OOKTxFilesView::get_repeat_total() { return 1; }
-	uint32_t OOKTxFilesView::get_frame_part_total() { return 1; }
+	// uint32_t OOKTxFilesView::get_repeat_total() { return 1; }
+	// uint32_t OOKTxFilesView::get_frame_part_total() { return 1; }
 
-	std::string OOKTxFilesView::generate_frame_part(const uint32_t frame_part_index, const bool reversed)
+	// void OOKTxFilesView::reset_reader()
+	// {
+	// 	reader.get()->reset("0");
+	// };
+
+	// std::string OOKTxFilesView::generate_frame_part(const uint32_t frame_part_index, const bool reversed)
+	// {
+	// 	return "0";
+	// }
+
+	void OOKTxFilesView::on_file_changed(std::filesystem::path new_file_path)
 	{
-		return "0";
+
+		File data_file, info_file;
+		// char file_data[257];
+
+		// Get file size
+		auto data_open_error = data_file.open("/" + new_file_path.string());
+		if (data_open_error.is_valid())
+		{
+			return;
+		}
+
+		file_path = new_file_path;
+
+		// Get original record frequency if available
+		// std::filesystem::path info_file_path = file_path;
+		// info_file_path.replace_extension(u".TXT");
+
+		// sample_rate = 500000;
+
+		// auto info_open_error = info_file.open("/" + info_file_path.string());
+		// if (!info_open_error.is_valid())
+		// {
+		// 	memset(file_data, 0, 257);
+		// 	auto read_size = info_file.read(file_data, 256);
+		// 	if (!read_size.is_error())
+		// 	{
+		// 		auto pos1 = strstr(file_data, "samples_per_bit=");
+		// 		if (pos1)
+		// 		{
+		// 			pos1 += 16;
+		// 			field_frequency.set_value(strtoll(pos1, nullptr, 10));
+		// 		}
+		// 	}
+		// }
+
+		// text_sample_rate.set(unit_auto_scale(sample_rate, 3, 0) + "Hz");
+
+		// auto file_size = data_file.size();
+		// auto duration = (file_size * 1000) / (2 * 2 * sample_rate);
+
+		// progressbar.set_max(file_size);
+		// text_filename.set(file_path.filename().string().substr(0, 12));
+		// text_duration.set(to_string_time_ms(duration));
+
+		// button_play.focus();
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -428,11 +475,6 @@ namespace ui
 		field_wordlength.focus();
 	}
 
-	uint32_t OOKTxDeBruijnView::samples_per_bit()
-	{
-		return OOK_SAMPLERATE / ((field_clk.value() * 1000) / (options_period_per_symbol.selected_index_value() / field_fragments.value()));
-	}
-
 	void OOKTxDeBruijnView::reset_symfield()
 	{
 		std::string format_string = "";
@@ -464,41 +506,46 @@ namespace ui
 		debruijn_sequencer.generate();
 	}
 
-	uint32_t OOKTxDeBruijnView::get_repeat_total() { return 1; }
-	uint32_t OOKTxDeBruijnView::get_frame_part_total()
-	{
-		return debruijn_sequencer.get_total_parts();
-	}
+	// uint32_t OOKTxDeBruijnView::get_repeat_total() { return 1; }
+	// uint32_t OOKTxDeBruijnView::get_frame_part_total()
+	// {
+	// 	return debruijn_sequencer.get_total_parts();
+	// }
 
-	std::string OOKTxDeBruijnView::generate_frame_part(const uint32_t frame_part_index, const bool reverse)
-	// TODO: we still need to implement the reverse flag
-	{
-		uint32_t fragments_length = field_fragments.value();
-		std::string fragment_0 = ""; // symfield_fragment_0.value_string();
-		std::string fragment_1 = ""; // symfield_fragment_1.value_string();
+	// void OOKTxDeBruijnView::reset_reader()
+	// {
+	// 	reader.get()->reset("0");
+	// };
 
-		// build fragments
-		for (uint32_t i = 0; i < fragments_length; i++)
-		{
-			fragment_0 += symfield_symbols[symfield_fragment_0.get_sym(i)];
-			fragment_1 += symfield_symbols[symfield_fragment_1.get_sym(i)];
-		}
+	// std::string OOKTxDeBruijnView::generate_frame_part(const uint32_t frame_part_index, const bool reverse)
+	// // TODO: we still need to implement the reverse flag
+	// {
+	// 	uint32_t fragments_length = field_fragments.value();
+	// 	std::string fragment_0 = ""; // symfield_fragment_0.value_string();
+	// 	std::string fragment_1 = ""; // symfield_fragment_1.value_string();
 
-		std::string frame_fragments = "";
-		std::string frame_part = debruijn_sequencer.get_part(frame_part_index);
+	// 	// build fragments
+	// 	for (uint32_t i = 0; i < fragments_length; i++)
+	// 	{
+	// 		fragment_0 += symfield_symbols[symfield_fragment_0.get_sym(i)];
+	// 		fragment_1 += symfield_symbols[symfield_fragment_1.get_sym(i)];
+	// 	}
 
-		for (uint32_t i = 0; i < frame_part.length(); i++)
-		{
-			bool bit = frame_part[i] == symfield_symbols[1];
+	// 	std::string frame_fragments = "";
+	// 	std::string frame_part = debruijn_sequencer.get_part(frame_part_index);
 
-			if (reverse)
-				bit = !bit;
+	// 	for (uint32_t i = 0; i < frame_part.length(); i++)
+	// 	{
+	// 		bool bit = frame_part[i] == symfield_symbols[1];
 
-			frame_fragments += (bit) ? fragment_1 : fragment_0;
-		}
+	// 		if (reverse)
+	// 			bit = !bit;
 
-		return frame_fragments;
-	}
+	// 		frame_fragments += (bit) ? fragment_1 : fragment_0;
+	// 	}
+
+	// 	return frame_fragments;
+	// }
 
 	// 	///////////////////////////////////////////////////////////////////////////////
 	// 	// OOKTxView
@@ -520,7 +567,7 @@ namespace ui
 			&view_generator,
 
 			&checkbox_reversed,
-			&waveform,
+			// &waveform,
 			&text_progress,
 			&progress_bar,
 			&tx_view,
@@ -599,7 +646,8 @@ namespace ui
 		};
 
 		// start on debruijn generator
-		tab_view.set_selected(2);
+		tab_view.set_selected(0);
+		// tab_view.set_selected(2);
 	}
 
 	void OOKTxView::focus()
@@ -611,9 +659,9 @@ namespace ui
 	void OOKTxView::refresh()
 	{
 		reset_cursors();
-		generate_frame_part();
+		// generate_frame_part();
 		progress_update();
-		draw_waveform();
+		// draw_waveform();
 	}
 
 	OOKTxView::~OOKTxView()
@@ -623,24 +671,40 @@ namespace ui
 	}
 
 	// TX methods
-	void OOKTxView::generate_frame_part()
+	// void OOKTxView::generate_frame_part()
+	// {
+	// 	frame_fragments.clear();
+
+	// 	if (tab_view.selected() == 0)
+	// 		frame_fragments += view_files.generate_frame_part(
+	// 			frame_parts_cursor.index,
+	// 			checkbox_reversed.value());
+
+	// 	if (tab_view.selected() == 1)
+	// 		frame_fragments += view_generator.generate_frame_part(
+	// 			frame_parts_cursor.index,
+	// 			checkbox_reversed.value());
+
+	// 	if (tab_view.selected() == 2)
+	// 		frame_fragments += view_debruijn.generate_frame_part(
+	// 			frame_parts_cursor.index,
+	// 			checkbox_reversed.value());
+	// }
+
+	void OOKTxView::set_ready()
 	{
-		frame_fragments.clear();
+		ready_signal = true;
+	}
 
-		if (tab_view.selected() == 0)
-			frame_fragments += view_files.generate_frame_part(
-				frame_parts_cursor.index,
-				checkbox_reversed.value());
+	void
+	OOKTxView::handle_stream_reader_thread_done(const uint32_t return_code)
+	{
+		// if (return_code == StreamReaderThread::END_OF_STREAM)
+		if (return_code == StreamReaderThread::READ_ERROR)
+			err = "Streaming error";
 
-		if (tab_view.selected() == 1)
-			frame_fragments += view_generator.generate_frame_part(
-				frame_parts_cursor.index,
-				checkbox_reversed.value());
-
-		if (tab_view.selected() == 2)
-			frame_fragments += view_debruijn.generate_frame_part(
-				frame_parts_cursor.index,
-				checkbox_reversed.value());
+		stop_tx();
+		progress_reset();
 	}
 
 	// NOTE: should be called after changing the tx_mode
@@ -676,67 +740,141 @@ namespace ui
 
 	void OOKTxView::start_tx()
 	{
-		switch (tab_view.selected())
-		{
+		uint32_t samples_per_bit;
+
+		if (tx_mode != TX_MODE_IDLE)
+			stop_tx();
+
 		// File Loader View TX
-		case 0:
-
-			// samples_per_bit = view_generator.samples_per_bit();
-			// pause_between_symbols = view_generator.field_pause_between_symbols.value();
-
-			break;
-
-		// Generator View TX
-		case 1:
+		if (tab_view.selected() == 0)
+		{
 			// TODO: disable access to all inputs
 
+			samples_per_bit = OOK_SAMPLERATE / (1000000 / (view_files.options_period_per_bit.selected_index_value()));
+
+			// auto open_error = p->open(view_files.file_path);
+
+			// if (open_error.is_valid())
+			// {
+			// 	text_progress.set("Error opening file.");
+			// 	// return; // Fixes TX bug if there's a file error
+			// }
+			auto file_reader_p = std::make_unique<FileReader>();
+			// auto p = std::make_unique<OOKEncoderReader>();
+
+			tx(std::move(file_reader_p), samples_per_bit);
+		}
+
+		// Generator View TX
+		if (tab_view.selected() == 1)
+		{
+			// TODO: disable access to all inputs
 			view_generator.symfield_word.set_focusable(false);
 
-			samples_per_bit = view_generator.samples_per_bit();
-			pause_between_symbols = view_generator.field_pause_between_symbols.value();
+			// TODO: disable access to all inputs
+
+			samples_per_bit = OOK_SAMPLERATE / ((view_generator.field_clk.value() * 1000) / (view_generator.options_period_per_symbol.selected_index_value() / view_generator.encoder_def->bit_fragments_length_per_symbol));
+			// TODO: Reader
 
 			switch (view_generator.options_tx_method.selected_index_value())
 			{
 			case TX_MODE_MANUAL:
-				tx_mode = TX_MODE_MANUAL;
-				break;
+			case TX_MODE_BRUTEFORCE:
+				uint8_t selected_symbol_indexes[view_generator.encoder_def->word_length]{};
 
-			case TX_MODE_DEBRUIJN:
-				if (!view_generator.encoder_def->is_vuln_to_debruijn)
+				// extract values from symfield
+				for (uint32_t i = 0; i < view_generator.encoder_def->word_length; i++)
+					selected_symbol_indexes[i] = view_generator.symfield_word.get_sym(i);
+
+				auto ook_encoder_reader_p = std::make_unique<OOKEncoderReader>();
+
+				ook_encoder_reader_p->repeat_total = view_generator.field_repeat_min.value();
+				ook_encoder_reader_p->pause_total = view_generator.field_pause_between_symbols.value();
+				ook_encoder_reader_p->frame_fragments = generate_frame_fragments(view_generator.encoder_def, selected_symbol_indexes, checkbox_reversed.value());
+
+				if (tab_view.selected() == TX_MODE_MANUAL)
 				{
-					stop_tx();
-					view_generator.check_if_encoder_is_vuln_to_debruijn();
-					return;
+					tx_mode = TX_MODE_MANUAL;
 				}
 
-				tx_mode = TX_MODE_DEBRUIJN;
-				view_generator.reset_debruijn();
+				if (tab_view.selected() == TX_MODE_BRUTEFORCE)
+				{
+					tx_mode = TX_MODE_BRUTEFORCE;
+
+					ook_encoder_reader_p->on_before_frame_fragment_usage = [this](OOKEncoderReader &reader)
+					{
+						uint8_t selected_symbol_indexes[view_generator.encoder_def->word_length]{};
+
+						this->view_generator.symfield_word.set_next_possibility();
+
+						// extract values from symfield
+						for (uint32_t i = 0; i < this->view_generator.encoder_def->word_length; i++)
+							selected_symbol_indexes[i] = this->view_generator.symfield_word.get_sym(i);
+
+						reader.frame_fragments = generate_frame_fragments(
+							this->view_generator.encoder_def,
+							selected_symbol_indexes,
+							checkbox_reversed.value());
+					};
+				}
+
+				tx(std::move(ook_encoder_reader_p), samples_per_bit);
 				break;
 
-			case TX_MODE_BRUTEFORCE:
-				tx_mode = TX_MODE_BRUTEFORCE;
-				frame_parts_cursor.index = view_generator.symfield_word.get_possibility();
-				break;
+				// case TX_MODE_DEBRUIJN:
+				// 	if (!view_generator.encoder_def->is_vuln_to_debruijn)
+				// 	{
+				// 		stop_tx();
+				// 		view_generator.check_if_encoder_is_vuln_to_debruijn();
+				// 		return;
+				// 	}
 			}
-			break;
+		}
 
 		// DeBruijn View TX
-		case 2:
+		if (tab_view.selected() == 2)
+		{
 			tx_mode = TX_MODE_DEBRUIJN;
 			view_debruijn.reset_debruijn();
 
 			// TODO: disable access to all inputs
 
-			samples_per_bit = view_debruijn.samples_per_bit();
-			pause_between_symbols = view_debruijn.field_pause_between_symbols.value();
+			samples_per_bit = OOK_SAMPLERATE / ((view_debruijn.field_clk.value() * 1000) / (view_debruijn.options_period_per_symbol.selected_index_value() / view_debruijn.field_fragments.value()));
+			// TODO: reader
+		}
+	}
 
-			break;
+	void OOKTxView::tx(
+		std::unique_ptr<stream::Reader> reader,
+		uint32_t samples_per_bit)
+	{
+		size_t read_size = 64;
+		size_t buffer_count = 3;
+
+		if (!(bool)reader)
+		{
+			tx_mode = TX_MODE_IDLE;
+			return;
 		}
 
-		tx_view.set_transmitting(true);
 		reset_cursors();
-		progress_reset();
-		tx();
+		// progress_reset();
+		tx_view.set_transmitting(true);
+
+		baseband::set_ook_data(samples_per_bit);
+		stream_reader_thread = std::make_unique<StreamReaderThread>(
+			std::move(reader),
+			read_size, buffer_count,
+			&ready_signal,
+			[this](uint32_t return_code)
+			{
+				this->text_progress.set("return_code " + to_string_dec_uint(return_code));
+
+				StreamReaderThreadDoneMessage message{return_code};
+				EventDispatcher::send_message(message);
+			});
+
+		transmitter_model.enable();
 	}
 
 	// on_tx_progress
@@ -744,83 +882,77 @@ namespace ui
 	// ideally, it should attempt first to repeat the frame as repetitions are
 	// handled by the baseband logic and then it should attempt to send the other
 	// frame parts.
-	void OOKTxView::on_tx_progress(const uint32_t, const bool done)
+	void OOKTxView::on_tx_progress(const TXProgressMessage message)
 	{
-		if (tx_mode == TX_MODE_IDLE)
-			return;
 
-		// Update cursors
-		repeat_cursor.index++;
-		if (done)
+		if (message.done)
 		{
-			frame_parts_cursor.index++;
-		}
-
-		// check if we have other frames to transmit or if we want to stop transmission
-		if (done)
-		{
-
-			if (repeat_cursor.is_done())
-			{
-				if (frame_parts_cursor.is_done())
-				{
-					stop_tx();
-					return;
-				}
-
-				// this needs to be assessed here, if we reset it before this may cause
-				// the last frame to be skipped (assuming, didn't test it)
-				repeat_cursor.index = 0;
-			}
-
-			if (view_generator.options_tx_method.selected_index_value() == TX_MODE_BRUTEFORCE)
-			{
-				view_generator.symfield_word.set_next_possibility();
-			}
-
-			// call tx
-			tx();
+			text_progress.set("done");
+			stop_tx();
 		}
 		else
 		{
-			// in case we're not done yet, we still want to update the progress
-			progress_update();
+			text_progress.set("on_tx_progress " + to_string_dec_uint(message.progress));
 		}
-	}
 
-	void OOKTxView::tx()
-	{
-		generate_frame_part();
-		progress_update();
+		// if (tx_mode == TX_MODE_IDLE)
+		// 	return;
 
-		size_t bitstream_length = make_bitstream(frame_fragments);
+		// // Update cursors
+		// repeat_cursor.index++;
+		// if (done)
+		// {
+		// 	frame_parts_cursor.index++;
+		// }
 
-		transmitter_model.enable();
+		// // check if we have other frames to transmit or if we want to stop transmission
+		// if (done)
+		// {
 
-		// TODO: we need to add a compatibilty layer later
+		// 	if (repeat_cursor.is_done())
+		// 	{
+		// 		if (frame_parts_cursor.is_done())
+		// 		{
+		// 			stop_tx();
+		// 			return;
+		// 		}
 
-		// baseband::set_ook_data(
-		// 	bitstream_length,
-		// 	samples_per_bit,
-		// 	repeat_cursor.total,
-		// 	pause_between_symbols);
+		// 		// this needs to be assessed here, if we reset it before this may cause
+		// 		// the last frame to be skipped (assuming, didn't test it)
+		// 		repeat_cursor.index = 0;
+		// 	}
 
-		// we're only pushing the ui updates past the baseband comm to ensure
-		// we decrease the delay on TX frame burst cases
-		draw_waveform();
+		// 	if (view_generator.options_tx_method.selected_index_value() == TX_MODE_BRUTEFORCE)
+		// 	{
+		// 		view_generator.symfield_word.set_next_possibility();
+		// 	}
+
+		// 	// call tx
+		// 	tx();
+		// }
+		// else
+		// {
+		// 	// in case we're not done yet, we still want to update the progress
+		// 	progress_update();
+		// }
 	}
 
 	void OOKTxView::stop_tx()
 	{
+		// TODO: this should be uncommented
+		if (stream_reader_thread)
+			stream_reader_thread.reset();
+
 		transmitter_model.disable();
 		tx_mode = TX_MODE_IDLE;
 		tx_view.set_transmitting(false);
 		view_generator.symfield_word.set_focusable(true);
+		ready_signal = false;
 
 		reset_cursors();
 		progress_reset();
-		generate_frame_part();
-		draw_waveform();
+		// generate_frame_part();
+		// draw_waveform();
 	}
 
 	void OOKTxView::reset_cursors()
@@ -836,33 +968,33 @@ namespace ui
 		{
 		// File Loader View TX
 		case 0:
-			repeat_cursor.total = view_files.get_repeat_total();
-			frame_parts_cursor.total = view_files.get_frame_part_total();
+			// repeat_cursor.total = view_files.get_repeat_total();
+			// frame_parts_cursor.total = view_files.get_frame_part_total();
 			break;
 
 		// Generator View TX
 		case 1:
-			repeat_cursor.total = view_generator.get_repeat_total();
-			frame_parts_cursor.total = view_generator.get_frame_part_total();
+			// repeat_cursor.total = view_generator.get_repeat_total();
+			// frame_parts_cursor.total = view_generator.get_frame_part_total();
 			break;
 
 		// DeBruijn TX
 		case 2:
-			repeat_cursor.total = view_debruijn.get_repeat_total();
-			frame_parts_cursor.total = view_debruijn.get_frame_part_total();
+			// repeat_cursor.total = view_debruijn.get_repeat_total();
+			// frame_parts_cursor.total = view_debruijn.get_frame_part_total();
 			break;
 		}
 	}
 
-	void OOKTxView::draw_waveform()
-	{
-		size_t length = frame_fragments.length();
+	// void OOKTxView::draw_waveform()
+	// {
+	// 	size_t length = frame_fragments.length();
 
-		for (int16_t n = 0; n < length; n++)
-			waveform_buffer[n] = (frame_fragments[n] == '0') ? 0 : 1;
+	// 	for (int16_t n = 0; n < length; n++)
+	// 		waveform_buffer[n] = (frame_fragments[n] == '0') ? 0 : 1;
 
-		waveform.set_length(length);
-		waveform.set_dirty();
-	}
+	// 	waveform.set_length(length);
+	// 	waveform.set_dirty();
+	// }
 
 } /* namespace ui */

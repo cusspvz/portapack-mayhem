@@ -218,13 +218,13 @@ namespace baseband
 		send_message(&message);
 	}
 
-	void set_ook_data(const uint32_t stream_length, const uint32_t samples_per_bit, const uint8_t repeat, const uint32_t pause_symbols)
+	void set_ook_data(
+		// const uint32_t stream_length,
+		const uint32_t samples_per_bit)
 	{
 		const OOKConfigureMessage message{
-			stream_length,
-			samples_per_bit,
-			repeat,
-			pause_symbols};
+			// stream_length,
+			samples_per_bit};
 
 		send_message(&message);
 	}
@@ -356,15 +356,15 @@ namespace baseband
 		send_message(&message);
 	}
 
-	void replay_start(ReplayConfig *const config)
+	void replay_start(StreamConfig *const config)
 	{
-		ReplayConfigMessage message{config};
+		StreamConfigMessage message{config};
 		send_message(&message);
 	}
 
 	void replay_stop()
 	{
-		ReplayConfigMessage message{nullptr};
+		StreamConfigMessage message{nullptr};
 		send_message(&message);
 	}
 

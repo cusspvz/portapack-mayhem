@@ -19,43 +19,49 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#pragma once
-
+#include "encoders.hpp"
 #include "io.hpp"
-
+#include <functional>
 #include <cstdint>
 
-enum OOKReaderReadType
+using namespace encoders;
+
+enum OOKEncoderReaderReadType
 {
 	OOK_READER_COMPLETED = 0,
 	OOK_READER_READING_FRAGMENT = 1,
 	OOK_READER_READING_PAUSES = 2,
 };
 
-using OOKReaderError = Error;
-
-class OOKReader : public stream::Reader
+class OOKEncoderReader : public stream::Reader
 {
 public:
-	OOKReader() = default;
+	std::function<void(OOKEncoderReader &)> on_before_frame_fragment_usage{};
 
-	OOKReader(const OOKReader &) = delete;
-	OOKReader &operator=(const OOKReader &) = delete;
-	OOKReader &operator=(OOKReader &&) = delete;
+	OOKEncoderReader() = default;
 
-	Result<uint64_t, OOKReaderError> read(void *const buffer, const uint64_t bytes) override;
-	uint64_t length();
+	OOKEncoderReader(const OOKEncoderReader &) = delete;
+	OOKEncoderReader &operator=(const OOKEncoderReader &) = delete;
+	OOKEncoderReader &operator=(OOKEncoderReader &&) = delete;
+
+	Result<uint64_t, Error> read(void *const buffer, const uint64_t bytes) override;
+	// uint64_t length();
+
+	// TODO: move this to protected
+	uint8_t repeat_total{1};
+	uint16_t pause_total{0};
+	std::string frame_fragments = "0";
+	void reset();
 
 protected:
 	uint64_t bytes_read{0};
 
-	std::string &fragments;
-	uint8_t repeat_total{1};
-	uint16_t pause_total{0};
+private:
+	// repetition and pauses
+	uint8_t _repeat_bit_count{0};
+	uint8_t _pause_bit_count{0};
 
 	// ongoing read vars
-	OOKReaderReadType read_type = OOK_READER_READING_FRAGMENT;
-	uint8_t fragment_bit_count{0};
-	uint8_t repeat_bit_count{0};
-	uint8_t pause_bit_count{0};
+	uint8_t _fragment_bit_count{0};
+	OOKEncoderReaderReadType _read_type = OOK_READER_READING_FRAGMENT;
 };

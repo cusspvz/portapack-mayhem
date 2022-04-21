@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 Jared Boone, ShareBrained Technology, Inc.
+ * Copyright (C) 2016 Furrtek
  *
  * This file is part of PortaPack.
  *
@@ -19,8 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __CAPTURE_THREAD_H__
-#define __CAPTURE_THREAD_H__
+#ifndef __stream_reader_thread_H__
+#define __stream_reader_thread_H__
 
 #include "ch.h"
 
@@ -33,36 +34,44 @@
 #include <cstddef>
 #include <utility>
 
-class CaptureThread {
+class StreamReaderThread
+{
 public:
-	CaptureThread(
-		std::unique_ptr<stream::Writer> writer,
-		size_t write_size,
+	StreamReaderThread(
+		std::unique_ptr<stream::Reader> reader,
+		size_t read_size,
 		size_t buffer_count,
-		std::function<void()> success_callback,
-		std::function<void(File::Error)> error_callback
-	);
-	~CaptureThread();
+		bool *ready_signal,
+		std::function<void(uint32_t return_code)> terminate_callback);
+	~StreamReaderThread();
 
-	CaptureThread(const CaptureThread&) = delete;
-	CaptureThread(CaptureThread&&) = delete;
-	CaptureThread& operator=(const CaptureThread&) = delete;
-	CaptureThread& operator=(CaptureThread&&) = delete;
+	StreamReaderThread(const StreamReaderThread &) = delete;
+	StreamReaderThread(StreamReaderThread &&) = delete;
+	StreamReaderThread &operator=(const StreamReaderThread &) = delete;
+	StreamReaderThread &operator=(StreamReaderThread &&) = delete;
 
-	const CaptureConfig& state() const {
+	const StreamConfig &state() const
+	{
 		return config;
-	}
+	};
+
+	enum StreamReaderThread_return
+	{
+		READ_ERROR = 0,
+		END_OF_STREAM,
+		TERMINATED
+	};
 
 private:
-	CaptureConfig config;
-	std::unique_ptr<stream::Writer> writer;
-	std::function<void()> success_callback;
-	std::function<void(File::Error)> error_callback;
-	Thread* thread { nullptr };
+	StreamConfig config;
+	std::unique_ptr<stream::Reader> reader;
+	bool *ready_sig;
+	std::function<void(uint32_t return_code)> terminate_callback;
+	Thread *thread{nullptr};
 
-	static msg_t static_fn(void* arg);
+	static msg_t static_fn(void *arg);
 
-	Optional<File::Error> run();
+	uint32_t run();
 };
 
-#endif/*__CAPTURE_THREAD_H__*/
+#endif /*__stream_reader_thread_H__*/

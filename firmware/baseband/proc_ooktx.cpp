@@ -51,11 +51,13 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 			// Samples per bit control
 			if (sample_count >= samples_per_bit)
 			{
+				sample_count = 0;
+
+				// get the next cur_bit
 				if (configured)
 				{
 					process_cur_bit();
 				}
-				sample_count = 0;
 			}
 			else
 			{
@@ -66,7 +68,8 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 		// Handle the sine wave depending if the current bit is on or off
 		if (cur_bit)
 		{
-			phase = (phase + 200); // What ?
+			// shape the sine wave correctly during 10 cycles (10 * 1113Hz)
+			phase = (phase + 200);
 			sphase = phase + (64 << 18);
 
 			re = (sine_table_i8[(sphase & 0x03FC0000) >> 18]);
@@ -80,70 +83,52 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 
 		buffer.p[i] = {re, im};
 	}
+
+	// inform UI about the progress if it still is confifured
+	if (configured)
+	{
+		txprogress_message.progress = bytes_read;
+		shared_memory.application_queue.push(txprogress_message);
+	}
 }
 
 void OOKTxProcessor::process_cur_bit()
 {
-	// Prepare to gather the next bit
-	// or end in case we hit the ceilling
-	if (bit_pos >= bitstream_length)
-	{
-		// Transmission is now completed
-		cur_bit = 0;
-		txprogress_message.done = true;
-		shared_memory.application_queue.push(txprogress_message);
-		configured = false;
-	}
-	else
-	{
-		bit_pos--;
 
-		if (bit_pos == 0)
+	bit_pos--;
+
+	if (bit_pos == 0)
+	{
+		bit_pos = 8;
+
+		if (stream)
 		{
-
-			if (stream)
-			{
-				stream->read(&byte_sample, 1);
-				bytes_read++;
-			}
-			else
-			{
-				// if this gets into here, something might have failed
-				byte_sample = 0;
-			}
-		}
-
-		cur_bit = byte_sample & (1UL << (bit_pos - 1));
-	}
-}
-
-void OOKTxProcessor::on_message(const Message *const p)
-{
-	const auto ook_message = *reinterpret_cast<const OOKConfigureMessage *>(p);
-	const auto stream_message = *reinterpret_cast<const StreamConfigMessage *>(p);
-
-	switch (p->id)
-	{
-	case Message::ID::OOKConfigure:
-		bitstream_length = ook_message.bitstream_length;
-		samples_per_bit = ook_message.samples_per_bit / 10;
-		break;
-
-	case Message::ID::StreamConfig:
-		configured = false;
-		bytes_read = 0;
-
-		if (stream_message.config)
-		{
-			stream = std::make_unique<StreamOutput>(stream_message.config);
-
-			// Tell application that the buffers and FIFO pointers are ready, prefill
-			shared_memory.application_queue.push(sig_message);
+			bytes_read += stream->read(&byte_sample, 1);
 		}
 		else
 		{
-			stream.reset();
+			// Transmission is now completed
+			cur_bit = 0;
+			txprogress_message.done = true;
+			shared_memory.application_queue.push(txprogress_message);
+			configured = false;
+			return;
 		}
+	}
+
+	cur_bit = byte_sample & (1UL << (bit_pos - 1));
+}
+
+void OOKTxProcessor::on_message(const Message *const message)
+{
+	switch (message->id)
+	{
+	case Message::ID::OOKConfigure:
+		ook_config(*reinterpret_cast<const OOKConfigureMessage *>(message));
+		break;
+
+	case Message::ID::StreamConfig:
+		stream_config(*reinterpret_cast<const StreamConfigMessage *>(message));
 		break;
 
 	// App has prefilled the buffers, we're ready to go now
@@ -154,12 +139,37 @@ void OOKTxProcessor::on_message(const Message *const p)
 		txprogress_message.progress = 0;
 		txprogress_message.done = false;
 		configured = true;
+
+		// share init progress
+		shared_memory.application_queue.push(txprogress_message);
 		break;
 
 	default:
 		break;
 	}
 }
+
+void OOKTxProcessor::ook_config(const OOKConfigureMessage &message)
+{
+	samples_per_bit = message.samples_per_bit / 10;
+};
+void OOKTxProcessor::stream_config(const StreamConfigMessage &message)
+{
+	configured = false;
+	bytes_read = 0;
+
+	if (message.config)
+	{
+		stream = std::make_unique<StreamOutput>(message.config);
+
+		// Tell application that the buffers and FIFO pointers are ready, prefill
+		shared_memory.application_queue.push(sig_message);
+	}
+	else
+	{
+		stream.reset();
+	}
+};
 
 int main()
 {

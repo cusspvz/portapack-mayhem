@@ -156,7 +156,7 @@ set(CPPSRC
 	${COMMON}/wm8731.cpp
 	audio.cpp
 	baseband_api.cpp
-	capture_thread.cpp
+	stream_writer_thread.cpp
 	clock_manager.cpp
 	core_control.cpp
 	database.cpp
@@ -167,6 +167,7 @@ set(CPPSRC
 	event_m0.cpp
 	file.cpp
 	freqman.cpp
+	io_ook.cpp
 	io_file.cpp
 	io_wave.cpp
 	irq_controls.cpp
@@ -178,7 +179,7 @@ set(CPPSRC
 	radio.cpp
 	receiver_model.cpp
 	recent_entries.cpp
-	replay_thread.cpp
+	stream_reader_thread.cpp
 	rf_path.cpp
 	rtc_time.cpp
 	sd_card.cpp
@@ -209,7 +210,7 @@ set(CPPSRC
 	ui/ui_channel.cpp
 	ui/ui_font_fixed_8x16.cpp
 	ui/ui_geomap.cpp
-        ui/ui_qrcode.cpp
+    ui/ui_qrcode.cpp
 	ui/ui_menu.cpp
 	ui/ui_btngrid.cpp
 	ui/ui_receiver.cpp

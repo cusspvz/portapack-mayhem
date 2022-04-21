@@ -144,7 +144,7 @@ namespace ui
 
 	bool RecordView::is_active() const
 	{
-		return (bool)capture_thread;
+		return (bool)stream_writer_thread;
 	}
 
 	void RecordView::toggle()
@@ -247,17 +247,17 @@ namespace ui
 		{
 			text_record_filename.set(base_path.replace_extension().string());
 			button_record.set_bitmap(&bitmap_stop);
-			capture_thread = std::make_unique<CaptureThread>(
+			stream_writer_thread = std::make_unique<StreamWriterThread>(
 				std::move(writer),
 				write_size, buffer_count,
 				[]()
 				{
-					CaptureThreadDoneMessage message{};
+					StreamWriterThreadDoneMessage message{};
 					EventDispatcher::send_message(message);
 				},
 				[](File::FsError error)
 				{
-					CaptureThreadDoneMessage message{error.code()};
+					StreamWriterThreadDoneMessage message{error.code()};
 					EventDispatcher::send_message(message);
 				});
 		}
@@ -275,7 +275,7 @@ namespace ui
 	{
 		if (is_active())
 		{
-			capture_thread.reset();
+			stream_writer_thread.reset();
 			button_record.set_bitmap(&bitmap_record);
 		}
 
@@ -315,7 +315,7 @@ namespace ui
 	{
 		if (is_active())
 		{
-			const auto dropped_percent = std::min(99U, capture_thread->state().dropped_percent());
+			const auto dropped_percent = std::min(99U, stream_writer_thread->state().dropped_percent());
 			const auto s = to_string_dec_uint(dropped_percent, 2, ' ') + "\%";
 			text_record_dropped.set(s);
 		}
@@ -341,7 +341,7 @@ namespace ui
 		}
 	}
 
-	void RecordView::handle_capture_thread_done(const File::FsError error)
+	void RecordView::handle_stream_writer_thread_done(const File::FsError error)
 	{
 		stop();
 		if (error.code())
