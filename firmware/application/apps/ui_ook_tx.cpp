@@ -788,21 +788,26 @@ namespace ui
 
 				auto ook_encoder_reader_p = std::make_unique<OOKEncoderReader>();
 
-				ook_encoder_reader_p->repeat_total = view_generator.field_repeat_min.value();
-				ook_encoder_reader_p->pause_total = view_generator.field_pause_between_symbols.value();
 				ook_encoder_reader_p->frame_fragments = generate_frame_fragments(view_generator.encoder_def, selected_symbol_indexes, checkbox_reversed.value());
+				ook_encoder_reader_p->pauses_cursor.total = view_generator.field_pause_between_symbols.value();
+				ook_encoder_reader_p->repetitions_cursor.total = view_generator.field_repeat_min.value();
 
-				if (tab_view.selected() == TX_MODE_MANUAL)
+				if (view_generator.options_tx_method.selected_index_value() == TX_MODE_MANUAL)
 				{
 					tx_mode = TX_MODE_MANUAL;
 				}
 
-				if (tab_view.selected() == TX_MODE_BRUTEFORCE)
+				if (view_generator.options_tx_method.selected_index_value() == TX_MODE_BRUTEFORCE)
 				{
 					tx_mode = TX_MODE_BRUTEFORCE;
+					bruteforce_cursor.reset();
+					bruteforce_cursor.total = view_generator.symfield_word.get_possibilities_count();
 
-					ook_encoder_reader_p->on_before_frame_fragment_usage = [this](OOKEncoderReader &reader)
+					ook_encoder_reader_p->on_complete = [this](OOKEncoderReader &reader)
 					{
+						if (this->bruteforce_cursor.is_done())
+							return;
+
 						uint8_t selected_symbol_indexes[view_generator.encoder_def->word_length]{};
 
 						this->view_generator.symfield_word.set_next_possibility();
@@ -815,9 +820,13 @@ namespace ui
 							this->view_generator.encoder_def,
 							selected_symbol_indexes,
 							checkbox_reversed.value());
+
+						this->bruteforce_cursor.bump();
+						reader.reset();
 					};
 				}
 
+				ook_encoder_reader_p->reset();
 				tx(std::move(ook_encoder_reader_p), samples_per_bit);
 				break;
 
@@ -848,8 +857,8 @@ namespace ui
 		std::unique_ptr<stream::Reader> reader,
 		uint32_t samples_per_bit)
 	{
-		size_t read_size = 64;
-		size_t buffer_count = 3;
+		size_t read_size = 16;
+		size_t buffer_count = 6;
 
 		if (!(bool)reader)
 		{

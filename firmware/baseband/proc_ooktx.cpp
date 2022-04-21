@@ -101,11 +101,15 @@ void OOKTxProcessor::process_cur_bit()
 	{
 		bit_pos = 8;
 
+		uint32_t bytes_streamed = 0;
+
 		if (stream)
 		{
-			bytes_read += stream->read(&byte_sample, 1);
+			bytes_streamed = stream->read(&byte_sample, 1);
+			bytes_read += bytes_streamed;
 		}
-		else
+
+		if (!stream || bytes_streamed == 0)
 		{
 			// Transmission is now completed
 			cur_bit = 0;

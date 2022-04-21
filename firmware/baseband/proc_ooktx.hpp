@@ -55,7 +55,7 @@ private:
 	// variables to help the processor execution routine
 	uint8_t s{0};
 	uint8_t cur_bit{0};
-	uint8_t bit_pos{8};
+	uint8_t bit_pos{32};
 	uint32_t sample_count{0};
 	uint32_t tone_phase{0}, phase{0}, sphase{0};
 	int32_t tone_sample{0}, sig{0}, frq{0};

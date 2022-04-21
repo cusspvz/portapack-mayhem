@@ -61,24 +61,6 @@ namespace ui
 		TX_MODE_LOADER = 4,
 	};
 
-	struct cursor
-	{
-	public:
-		uint32_t index;
-		uint32_t total;
-
-		void reset()
-		{
-			index = 0;
-			total = 0;
-		}
-
-		bool is_done()
-		{
-			return index >= total;
-		}
-	};
-
 	const std::vector<std::pair<std::string, int32_t>> PERIODS_PER_SYMBOL = {
 		{"2", 2},
 		{"3", 3},
@@ -381,6 +363,7 @@ namespace ui
 		tx_modes tx_mode = TX_MODE_IDLE;
 		cursor frame_parts_cursor{}; // cursor to navigate through the frame parts in case it has more than one
 		cursor repeat_cursor{};		 // cursor to navigate through the repeat parts in case it has more than one
+		cursor bruteforce_cursor{};
 
 		std::string frame_fragments = "0";
 		uint32_t pause_between_symbols;

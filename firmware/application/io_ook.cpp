@@ -31,14 +31,13 @@ void OOKEncoderReader::reset()
 	bytes_read = 0;
 
 	// repetition and pauses
-	repeat_total = 1;
-	_repeat_bit_count = 0;
-	pause_total = 0;
-	_pause_bit_count = 0;
+	repetitions_cursor.start_over();
+	pauses_cursor.start_over();
+	fragments_cursor.start_over();
+	fragments_cursor.total = frame_fragments.length();
 
 	// ongoing read vars
-	_fragment_bit_count = 0;
-	_read_type = OOK_READER_READING_FRAGMENT;
+	read_type = OOK_READER_READING_FRAGMENT;
 }
 
 Result<uint64_t, Error> OOKEncoderReader::read(void *const buffer, const uint64_t bytes)
@@ -53,52 +52,56 @@ Result<uint64_t, Error> OOKEncoderReader::read(void *const buffer, const uint64_
 	{
 		uint8_t byte = 0;
 
-		if (_read_type != OOK_READER_COMPLETED)
+		if (read_type != OOK_READER_COMPLETED)
 		{
 			for (uint8_t bit = 8; bit > 0; bit--)
 			{
 				bool turn_bit_on = false;
 
-				if (_read_type == OOK_READER_READING_FRAGMENT)
+				if (read_type == OOK_READER_READING_FRAGMENT)
 				{
-					if (_fragment_bit_count == 0 && on_before_frame_fragment_usage)
+					if (fragments_cursor.index == 0 && on_before_frame_fragment_usage)
 					{
 						// Allow the app to generate the fragment on demand, or at a single shot
 						on_before_frame_fragment_usage(*this);
 					};
 
-					turn_bit_on = frame_fragments[_fragment_bit_count] == '1';
+					turn_bit_on = frame_fragments[fragments_cursor.index] == '1';
 
-					_fragment_bit_count++;
+					fragments_cursor.bump();
 
 					// if completed, jump to either a pause or completed
-					if (_fragment_bit_count == frame_fragments.length())
+					if (fragments_cursor.is_done())
 					{
-						if (_repeat_bit_count < repeat_total)
+						if (repetitions_cursor.is_done())
 						{
-							// start pause
-							_pause_bit_count = 0;
-							_read_type = OOK_READER_READING_PAUSES;
+							// complete
+							read_type = OOK_READER_COMPLETED;
+
+							if (on_complete)
+							{
+								on_complete(*this);
+							}
 						}
 						else
 						{
-							// complete
-							_read_type = OOK_READER_COMPLETED;
+							// start pause
+							pauses_cursor.start_over();
+							read_type = OOK_READER_READING_PAUSES;
 						}
 					}
 				}
-				else if (_read_type == OOK_READER_READING_PAUSES)
+				else if (read_type == OOK_READER_READING_PAUSES)
 				{
 					// pause doesnt save anything in the bit
-
-					_pause_bit_count++;
+					pauses_cursor.bump();
 
 					// if pause is completed, jump to the next fragment
-					if (_pause_bit_count == pause_total)
+					if (pauses_cursor.is_done())
 					{
-						_fragment_bit_count = 0;
-						_read_type = OOK_READER_READING_FRAGMENT;
-						_repeat_bit_count++;
+						read_type = OOK_READER_READING_FRAGMENT;
+						fragments_cursor.start_over();
+						repetitions_cursor.bump();
 					}
 				}
 
@@ -108,6 +111,7 @@ Result<uint64_t, Error> OOKEncoderReader::read(void *const buffer, const uint64_
 					byte ^= 1UL << (bit - 1);
 				}
 			}
+
 			bytes_read++;
 		}
 

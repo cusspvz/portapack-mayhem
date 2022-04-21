@@ -21,6 +21,7 @@
 
 #include "encoders.hpp"
 #include "io.hpp"
+#include "cursor.hpp"
 #include <functional>
 #include <cstdint>
 
@@ -37,6 +38,7 @@ class OOKEncoderReader : public stream::Reader
 {
 public:
 	std::function<void(OOKEncoderReader &)> on_before_frame_fragment_usage{};
+	std::function<void(OOKEncoderReader &)> on_complete{};
 
 	OOKEncoderReader() = default;
 
@@ -48,20 +50,16 @@ public:
 	// uint64_t length();
 
 	// TODO: move this to protected
-	uint8_t repeat_total{1};
-	uint16_t pause_total{0};
 	std::string frame_fragments = "0";
 	void reset();
+
+	cursor pauses_cursor{0};
+	cursor repetitions_cursor{1};
+	cursor fragments_cursor{1};
 
 protected:
 	uint64_t bytes_read{0};
 
 private:
-	// repetition and pauses
-	uint8_t _repeat_bit_count{0};
-	uint8_t _pause_bit_count{0};
-
-	// ongoing read vars
-	uint8_t _fragment_bit_count{0};
-	OOKEncoderReaderReadType _read_type = OOK_READER_READING_FRAGMENT;
+	OOKEncoderReaderReadType read_type = OOK_READER_READING_FRAGMENT;
 };
