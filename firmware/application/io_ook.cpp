@@ -21,10 +21,10 @@
 
 #include "io_ook.hpp"
 
-// uint64_t OOKEncoderReader::length()
-// {
-// 	return (frame_fragments.length() + pause_total) * repeat_total;
-// };
+uint64_t OOKEncoderReader::length()
+{
+	return ((frame_fragments.length() + pauses_cursor.total) * repetitions_cursor.total) / 8;
+};
 
 void OOKEncoderReader::reset()
 {

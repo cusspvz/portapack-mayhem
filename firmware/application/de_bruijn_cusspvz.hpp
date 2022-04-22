@@ -32,9 +32,9 @@ public:
 	void db(uint8_t t, uint8_t p);
 	void generate();
 
-	std::string alphabet = "";
-	std::string sequence = "";
-	uint32_t length = 0;
+	std::string alphabet{""};
+	std::string sequence{""};
+	uint32_t length{0};
 
 	uint8_t k = 2; // radix
 	uint8_t n = 8; // data length
@@ -48,8 +48,8 @@ public:
 private:
 	void feed_sequence();
 	uint8_t a[101] = {};
-	uint32_t _total_parts;
-	uint8_t _bytes_per_part;
+	uint32_t _total_parts{0};
+	uint8_t _bytes_per_part{0};
 };
 
 #endif /*__DE_BRUIJN_H__*/

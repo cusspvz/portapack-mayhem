@@ -47,7 +47,7 @@ public:
 	OOKEncoderReader &operator=(OOKEncoderReader &&) = delete;
 
 	Result<uint64_t, Error> read(void *const buffer, const uint64_t bytes) override;
-	// uint64_t length();
+	uint64_t length();
 
 	// TODO: move this to protected
 	std::string frame_fragments = "0";

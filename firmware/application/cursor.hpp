@@ -22,8 +22,8 @@
 struct cursor
 {
 public:
-    uint32_t index;
-    uint32_t total;
+    uint32_t index{0};
+    uint32_t total{0};
 
     void reset()
     {

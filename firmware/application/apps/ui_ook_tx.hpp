@@ -108,7 +108,7 @@ namespace ui
 		void reset_symfield();
 		void check_if_encoder_is_vuln_to_debruijn();
 
-		de_bruijn debruijn_sequencer;
+		de_bruijn debruijn_sequencer{};
 		void reset_debruijn();
 
 		// UI related
@@ -247,7 +247,7 @@ namespace ui
 		void reset_symfield();
 
 		// private:
-		de_bruijn debruijn_sequencer;
+		de_bruijn debruijn_sequencer{};
 		std::string symfield_symbols = "01";
 
 		// UI related
@@ -338,7 +338,7 @@ namespace ui
 		std::string title() const override { return "OOK TX"; };
 
 	private:
-		std::string err;
+		std::string err{""};
 
 		// TX related
 		void set_ready();
@@ -348,11 +348,9 @@ namespace ui
 		void handle_stream_reader_thread_done(const uint32_t return_code);
 
 		void progress_reset();
-		void progress_update();
-		// void draw_waveform();
-
-		void reset_cursors();
-		void generate_stream();
+		void progress_update(uint32_t progress);
+		void draw_waveform(std::string &frame_fragments);
+		int16_t waveform_buffer[550];
 
 		void start_tx();
 		void on_tx_progress(const TXProgressMessage message);
@@ -361,13 +359,7 @@ namespace ui
 
 		// general
 		tx_modes tx_mode = TX_MODE_IDLE;
-		cursor frame_parts_cursor{}; // cursor to navigate through the frame parts in case it has more than one
-		cursor repeat_cursor{};		 // cursor to navigate through the repeat parts in case it has more than one
 		cursor bruteforce_cursor{};
-
-		std::string frame_fragments = "0";
-		uint32_t pause_between_symbols;
-		// int16_t waveform_buffer[550];
 
 		// UI related
 		NavigationView &nav_;
@@ -384,7 +376,7 @@ namespace ui
 		};
 
 		Labels labels{
-			// {{1 * 8, 18 * 8}, "Waveform:", Color::light_grey()},
+			{{1 * 8, 18 * 8}, "Waveform:", Color::light_grey()},
 		};
 
 		Checkbox checkbox_reversed{
@@ -394,14 +386,14 @@ namespace ui
 			true,
 		};
 
-		// Waveform waveform{
-		// 	{0, 21 * 8, 30 * 8, 32},
-		// 	waveform_buffer,
-		// 	0,
-		// 	0,
-		// 	true,
-		// 	Color::yellow(),
-		// };
+		Waveform waveform{
+			{0, 21 * 8, 30 * 8, 32},
+			waveform_buffer,
+			0,
+			0,
+			true,
+			Color::yellow(),
+		};
 
 		Text text_progress{
 			{1 * 8, 13 * 16, 30 * 8, 16},
