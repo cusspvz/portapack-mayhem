@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Jose Moreira
+ * Copyright (C) 2022 José Moreira @cusspvz
  *
  * This file is part of PortaPack.
  *

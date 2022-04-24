@@ -324,6 +324,9 @@ namespace ui
 
 		void paint(Painter &painter) override;
 
+		uint32_t get_max();
+		uint32_t get_value();
+
 	private:
 		uint32_t _value = 0;
 		uint32_t _max = 100;

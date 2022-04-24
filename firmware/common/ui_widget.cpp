@@ -671,7 +671,18 @@ namespace ui
 		set_dirty();
 	}
 
-	void ProgressBar::paint(Painter &painter)
+	uint32_t ProgressBar::get_max()
+	{
+		return _max;
+	}
+
+	uint32_t ProgressBar::get_value()
+	{
+		return _value;
+	}
+
+	void
+	ProgressBar::paint(Painter &painter)
 	{
 		int v_scaled;
 

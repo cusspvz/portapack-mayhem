@@ -99,13 +99,13 @@ void OOKTxProcessor::process_cur_bit()
 
 	if (bit_pos == 0)
 	{
-		bit_pos = 8;
+		bit_pos = 16;
 
 		uint32_t bytes_streamed = 0;
 
 		if (stream)
 		{
-			bytes_streamed = stream->read(&byte_sample, 1);
+			bytes_streamed = stream->read(&byte_sample, 2);
 			bytes_read += bytes_streamed;
 		}
 

@@ -50,7 +50,7 @@ private:
 	uint32_t bytes_read{0};
 
 	// internal buffer
-	uint8_t byte_sample{};
+	uint16_t byte_sample{};
 
 	// variables to help the processor execution routine
 	uint8_t s{0};
