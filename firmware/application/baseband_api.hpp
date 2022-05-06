@@ -79,9 +79,7 @@ namespace baseband
 
 	void set_nrf(const uint32_t baudrate, const uint32_t word_length, const uint32_t trigger_value, const bool trigger_word);
 
-	void set_ook_data(
-		// const uint32_t stream_length,
-		const uint32_t samples_per_bit);
+	void set_ook_data(const uint32_t pulses_per_bit);
 	void set_fsk_data(const uint32_t stream_length, const uint32_t samples_per_bit, const uint32_t shift,
 					  const uint32_t progress_notice);
 	void set_pocsag();

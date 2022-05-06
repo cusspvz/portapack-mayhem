@@ -978,15 +978,12 @@ class OOKConfigureMessage : public Message
 {
 public:
 	constexpr OOKConfigureMessage(
-		// const uint32_t bitstream_length,
-		const uint32_t samples_per_bit) : Message{ID::OOKConfigure},
-										  //   bitstream_length(bitstream_length),
-										  samples_per_bit(samples_per_bit)
+		const uint32_t pulses_per_bit) : Message{ID::OOKConfigure},
+										  pulses_per_bit(pulses_per_bit)
 	{
 	}
 
-	// const uint32_t bitstream_length;
-	const uint32_t samples_per_bit;
+	const uint32_t pulses_per_bit;
 };
 
 class SSTVConfigureMessage : public Message

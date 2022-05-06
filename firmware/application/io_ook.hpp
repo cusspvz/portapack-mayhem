@@ -24,6 +24,7 @@
 #include "cursor.hpp"
 #include <functional>
 #include <cstdint>
+#include <vector>
 
 using namespace encoders;
 
@@ -49,8 +50,7 @@ public:
 	Result<uint64_t, Error> read(void *const buffer, const uint64_t bytes) override;
 	uint64_t length();
 
-	// TODO: move this to protected
-	std::string frame_fragments = "0";
+	std::vector<bool> *frame_fragments{};
 	void reset();
 
 	cursor pauses_cursor{0};

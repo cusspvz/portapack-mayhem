@@ -69,7 +69,7 @@ namespace ui
 
 			baseband::run_image(portapack::spi_flash::image_tag_ook);
 
-			auto bitstream_length = view_EPAR.generate_message();
+			// auto bitstream_length = view_EPAR.generate_message();
 
 			// if (tx_mode == SINGLE) {
 			progressbar.set_max(2 * EPAR_REPEAT_COUNT);
@@ -247,7 +247,7 @@ namespace ui
 		relay_states[0].set_selected_index(relay_states[0].selected_index() ^ 1);
 	}
 
-	size_t EPARView::generate_message()
+	std::vector<bool> *EPARView::generate_message()
 	{
 		// R2, then R1
 		return gen_message_ep(field_city.value(), field_group.selected_index_value(),

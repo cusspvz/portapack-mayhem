@@ -116,12 +116,8 @@ namespace ui
 		Labels labels{
 			{{1 * 8, 0}, "Type:", Color::light_grey()},
 			{{1 * 8, 2 * 8}, "TX:", Color::light_grey()},
-			{{14 * 8, 0}, "Frm Clk:", Color::light_grey()},
-			{{27 * 8, 0}, "kHz", Color::light_grey()},
-			{{14 * 8, 2 * 8}, "Duration:", Color::light_grey()},
-			{{28 * 8, 2 * 8}, "us", Color::light_grey()},
-			{{14 * 8, 4 * 8}, "Sh Pulse:", Color::light_grey()},
-			{{28 * 8, 4 * 8}, "us", Color::light_grey()},
+			{{16 * 8, 0 * 8}, "Sh Pulse:", Color::light_grey()},
+			{{28 * 8, 0 * 8}, "us", Color::light_grey()},
 			{{1 * 8, 4 * 8}, "Repeat:", Color::light_grey()},
 			{{1 * 8, 6 * 8}, "Pause:", Color::light_grey()},
 			{{1 * 8, 8 * 8}, "Symbols:", Color::light_grey()},
@@ -145,24 +141,8 @@ namespace ui
 			},
 		};
 
-		NumberField field_clk{
-			{22 * 8, 0},
-			3,
-			{1, 99999},
-			10,
-			' ',
-		};
-
-		NumberField field_frameduration{
-			{23 * 8, 2 * 8},
-			5,
-			{100, 99999},
-			100,
-			' ',
-		};
-
-		OptionsField options_period_per_symbol{
-			{23 * 8, 4 * 8},
+		OptionsField options_shorter_pulse_period{
+			{25 * 8, 0 * 8},
 			5,
 			PERIODS_PER_SYMBOL,
 		};
@@ -175,7 +155,7 @@ namespace ui
 			' ',
 		};
 
-		NumberField field_pause_between_symbols{
+		NumberField field_pause_between_frames{
 			{8 * 8, 6 * 8},
 			5,
 			{0, 100},
@@ -215,7 +195,6 @@ namespace ui
 		// UI related
 
 		Labels labels{
-
 			{{14 * 8, 0 * 8}, "Sh Pulse:", Color::light_grey()},
 			{{28 * 8, 0 * 8}, "us", Color::light_grey()},
 		};
@@ -256,12 +235,8 @@ namespace ui
 			{{1 * 8, 2 * 8}, "Fragments #:", Color::light_grey()},
 			{{1 * 8, 6 * 8}, "Pause:", Color::light_grey()},
 
-			{{17 * 8, 0}, "Clck:", Color::light_grey()},
-			{{27 * 8, 0}, "kHz", Color::light_grey()},
-			{{17 * 8, 2 * 8}, "Frm:", Color::light_grey()},
-			{{28 * 8, 2 * 8}, "us", Color::light_grey()},
-			{{14 * 8, 4 * 8}, "Sh Pulse:", Color::light_grey()},
-			{{28 * 8, 4 * 8}, "us", Color::light_grey()},
+			{{14 * 8, 0 * 8}, "Sh Pulse:", Color::light_grey()},
+			{{28 * 8, 0 * 8}, "us", Color::light_grey()},
 			// frame descriptors
 			{{0 * 8, 10 * 8}, "Frag 0:", Color::light_grey()},
 			{{0 * 8, 12 * 8}, "Frag 1:", Color::light_grey()},
@@ -283,29 +258,13 @@ namespace ui
 			' ',
 		};
 
-		NumberField field_clk{
-			{23 * 8, 0},
-			3,
-			{1, 99999},
-			10,
-			' ',
-		};
-
-		NumberField field_frameduration{
-			{23 * 8, 2 * 8},
-			4,
-			{100, 99999},
-			100,
-			' ',
-		};
-
-		OptionsField options_period_per_symbol{
+		OptionsField options_shorter_pulse_period{
 			{23 * 8, 4 * 8},
 			5,
 			PERIODS_PER_SYMBOL,
 		};
 
-		NumberField field_pause_between_symbols{
+		NumberField field_pause_between_frames{
 			{8 * 8, 6 * 8},
 			5,
 			{0, 100},
@@ -347,9 +306,10 @@ namespace ui
 		bool ready_signal{false};
 		void handle_stream_reader_thread_done(const uint32_t return_code);
 
+		void generate_frame();
 		void progress_reset();
 		void progress_update(uint32_t progress);
-		void draw_waveform(std::string &frame_fragments);
+		void draw_waveform();
 		int16_t waveform_buffer[550];
 
 		void start_tx();
@@ -360,6 +320,8 @@ namespace ui
 		// general
 		tx_modes tx_mode = TX_MODE_IDLE;
 		cursor bruteforce_cursor{};
+
+		std::vector<bool> frame_fragments{};
 
 		// UI related
 		NavigationView &nav_;

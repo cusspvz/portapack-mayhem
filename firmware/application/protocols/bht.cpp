@@ -23,12 +23,11 @@
 #include "bht.hpp"
 #include "portapack_persistent_memory.hpp"
 
-size_t gen_message_ep(uint8_t city_code, size_t family_code_ep, uint32_t relay_number, uint32_t relay_state)
+std::vector<bool> *gen_message_ep(uint8_t city_code, size_t family_code_ep, uint32_t relay_number, uint32_t relay_state)
 {
 	size_t c;
 	const encoder_def_t *um3750_def;
 	uint8_t bits[12];
-	std::string ep_fragments;
 	// char ep_message[13] = { 0 };
 
 	// Repeated 2x 26 times
@@ -49,17 +48,9 @@ size_t gen_message_ep(uint8_t city_code, size_t family_code_ep, uint32_t relay_n
 	// for (c = 0; c < 12; c++)
 	//	ep_message[c] = bits[c] + '0';
 
-	c = 0;
-	for (auto ch : um3750_def->word_format)
-	{
-		if (ch == 'S')
-			ep_fragments += um3750_def->sync_bit_fragment;
-		else
-			ep_fragments += um3750_def->symbols_bit_fragments[bits[c++]];
-	}
-
-	// Return bitstream length
-	return make_bitstream(ep_fragments);
+	std::vector<bool> *frame_fragments{};
+	generate_frame_fragments(frame_fragments, um3750_def, bits, false);
+	return frame_fragments;
 }
 
 std::string gen_message_xy(const std::string &ascii_code)

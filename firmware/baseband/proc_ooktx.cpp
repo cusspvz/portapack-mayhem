@@ -38,38 +38,12 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 
 	for (size_t i = 0; i < buffer.count; i++)
 	{
-		// don't do nothing else in case we stop the transmission
-
-		// Synthesis at 2.28M/SAMPLES_PER_BIT {10} = 228kHz
-		if (s)
-			// don't change the cur_bit if we're still handling the rest of the bit's samples
-			s--;
-		else
-		{
-			s = 10 - 1;
-
-			// Samples per bit control
-			if (sample_count >= samples_per_bit)
-			{
-				sample_count = 0;
-
-				// get the next cur_bit
-				if (configured)
-				{
-					process_cur_bit();
-				}
-			}
-			else
-			{
-				sample_count++;
-			}
-		}
+		process();
 
 		// Handle the sine wave depending if the current bit is on or off
-		if (cur_bit)
+		if (current_bit)
 		{
-			// shape the sine wave correctly during 10 cycles (10 * 1113Hz)
-			phase = (phase + 200);
+			phase += 1024000; // phasing was too long, it was set to 200
 			sphase = phase + (64 << 18);
 
 			re = (sine_table_i8[(sphase & 0x03FC0000) >> 18]);
@@ -92,35 +66,67 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 	}
 }
 
-void OOKTxProcessor::process_cur_bit()
+void OOKTxProcessor::process()
 {
 
-	bit_pos--;
-
-	if (bit_pos == 0)
+	if (!configured)
 	{
-		bit_pos = 16;
+		return;
+	}
 
+	// At this point we want to ensure the cur_bit is continuously sampled through the baseband
+	// sampling buffer so we can print a set of sinewaves (also called short-pulse) representing the bit
+	if (!bit_sampling.is_done())
+	{
+		bit_sampling.bump();
+		return;
+	}
+
+	// at this point, we want to transmit a new bit
+	bit_sampling.start_over();
+
+	// at this point we need to either:
+	// - if our internal sample still has bits, gather the next bit
+	if (!bit_cursor.is_done())
+	{
+		bit_cursor.bump();
+
+		// - if the sample is fully consumed or empty, attempt to read from the stream
+	}
+	else
+	{
 		uint32_t bytes_streamed = 0;
 
 		if (stream)
 		{
-			bytes_streamed = stream->read(&byte_sample, 2);
+			bytes_streamed = stream->read(&bit_buffer, bit_buffer_byte_size);
 			bytes_read += bytes_streamed;
 		}
 
+		//   - if the stream is empty, it means we're done! :yey:
 		if (!stream || bytes_streamed == 0)
 		{
-			// Transmission is now completed
-			cur_bit = 0;
-			txprogress_message.done = true;
-			shared_memory.application_queue.push(txprogress_message);
-			configured = false;
+			done();
 			return;
 		}
+
+		bit_cursor.start_over();
 	}
 
-	cur_bit = byte_sample & (1UL << (bit_pos - 1));
+	// set the currently transmitting bit
+	current_bit = (bit_buffer & (1UL << (bit_cursor.total - bit_cursor.index - 1))) > 0;
+}
+
+void OOKTxProcessor::done()
+{
+	// Transmission is now completed
+	bit_sampling.reset();
+	bit_cursor.start_over();
+
+	txprogress_message.progress = bytes_read;
+	txprogress_message.done = true;
+	shared_memory.application_queue.push(txprogress_message);
+	configured = false;
 }
 
 void OOKTxProcessor::on_message(const Message *const message)
@@ -137,11 +143,15 @@ void OOKTxProcessor::on_message(const Message *const message)
 
 	// App has prefilled the buffers, we're ready to go now
 	case Message::ID::FIFOData:
-		s = 0;
-		bit_pos = 0;
-		cur_bit = 0;
 		txprogress_message.progress = 0;
 		txprogress_message.done = false;
+
+		bit_sampling.start_over();
+
+		bit_cursor.start_over();
+		bit_cursor.total = bit_buffer_byte_size * 8;
+		current_bit = false;
+
 		configured = true;
 
 		// share init progress
@@ -155,7 +165,10 @@ void OOKTxProcessor::on_message(const Message *const message)
 
 void OOKTxProcessor::ook_config(const OOKConfigureMessage &message)
 {
-	samples_per_bit = message.samples_per_bit / 10;
+	configured = false;
+
+	bit_sampling.total = baseband_fs / (1000000 / message.pulses_per_bit);
+	bit_sampling.start_over();
 };
 void OOKTxProcessor::stream_config(const StreamConfigMessage &message)
 {

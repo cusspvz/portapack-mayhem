@@ -91,22 +91,30 @@ namespace encoders
 		bitstream[bitstream_length >> 3] = byte;
 	}
 
-	std::string generate_frame_fragments(const encoder_def_t *encoder_def, const uint8_t selected_symbol_indexes[32], const bool reversed)
+	void generate_frame_fragments(std::vector<bool> *frame_fragments, const encoder_def_t *encoder_def, const uint8_t selected_symbol_indexes[32], const bool reversed)
 	{
-		std::string frame_fragments = "";
+		frame_fragments->clear();
 
 		for (uint8_t i = 0; i < encoder_def->word_length; i++)
 		{
 			if (encoder_def->word_format[i] == 'S')
-				frame_fragments += encoder_def->sync_bit_fragment;
+			{
+				frame_fragments->insert(
+					frame_fragments->end(),
+					std::begin(encoder_def->sync_bit_fragment),
+					std::end(encoder_def->sync_bit_fragment));
+			}
 			else
 			{
 				uint8_t index = selected_symbol_indexes[i];
-				frame_fragments += reversed ? encoder_def->symbols_bit_fragments[index == 0 ? 1 : 0] : encoder_def->symbols_bit_fragments[index];
+				auto symbol_bits = encoder_def->symbols_bit_fragments[reversed ? (index == 0 ? 1 : 0) : index];
+
+				for (uint8_t i = 0; i < encoder_def->bit_fragments_length_per_symbol; i++)
+				{
+					frame_fragments->insert(frame_fragments->end(), 1, symbol_bits[i]);
+				}
 			}
 		}
-
-		return frame_fragments;
 	};
 
 } /* namespace encoders */

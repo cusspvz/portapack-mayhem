@@ -27,6 +27,7 @@
 #include "baseband_thread.hpp"
 
 #include "stream_output.hpp"
+#include "cursor.hpp"
 
 #include <array>
 #include <memory>
@@ -35,30 +36,30 @@ class OOKTxProcessor : public BasebandProcessor
 {
 public:
 	void execute(const buffer_c8_t &buffer) override;
-	void process_cur_bit();
+	void process();
+	void done();
 
 	void on_message(const Message *const message) override;
 
 private:
-	BasebandThread baseband_thread{2280000, this, NORMALPRIO + 20, baseband::Direction::Transmit};
+	static constexpr size_t baseband_fs = 2280000; // sample rate
+
+	BasebandThread baseband_thread{baseband_fs, this, NORMALPRIO + 20, baseband::Direction::Transmit};
 
 	bool configured{false};
 	uint32_t samples_per_bit{0};
 
 	// streaming approach
-	std::unique_ptr<StreamOutput> stream{};
 	uint32_t bytes_read{0};
-
-	// internal buffer
-	uint16_t byte_sample{};
+	std::unique_ptr<StreamOutput> stream{};
+	uint8_t bit_buffer_byte_size = 1;
+	uint8_t bit_buffer{};
+	cursor bit_cursor{};
+	bool current_bit = false;
 
 	// variables to help the processor execution routine
-	uint8_t s{0};
-	uint8_t cur_bit{0};
-	uint8_t bit_pos{32};
-	uint32_t sample_count{0};
-	uint32_t tone_phase{0}, phase{0}, sphase{0};
-	int32_t tone_sample{0}, sig{0}, frq{0};
+	cursor bit_sampling{};
+	uint32_t phase{0}, sphase{0};
 
 	void ook_config(const OOKConfigureMessage &message);
 	void stream_config(const StreamConfigMessage &message);

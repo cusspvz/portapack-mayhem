@@ -54,11 +54,9 @@ namespace ui
 			&labels,
 			&options_encoder,
 			&options_tx_method,
-			&field_clk,
-			&field_frameduration,
-			&options_period_per_symbol,
+			&options_shorter_pulse_period,
 			&field_repeat_min,
-			&field_pause_between_symbols,
+			&field_pause_between_frames,
 			&symfield_word,
 			&text_format,
 		});
@@ -67,10 +65,9 @@ namespace ui
 		{
 			encoder_def = &encoder_defs[index];
 
-			field_clk.set_value(encoder_def->default_clk_speed / 1000);
 			field_repeat_min.set_value(encoder_def->repeat_min);
-			options_period_per_symbol.set_by_value(encoder_def->period_per_symbol);
-			field_pause_between_symbols.set_value(encoder_def->pause_symbols);
+			options_shorter_pulse_period.set_by_value(encoder_def->shorter_pulse_period);
+			field_pause_between_frames.set_value(encoder_def->pause_bits);
 
 			reset_symfield();
 			check_if_encoder_is_vuln_to_debruijn();
@@ -112,21 +109,6 @@ namespace ui
 		{
 			if (on_waveform_change_request)
 				on_waveform_change_request();
-		};
-
-		// Selecting input clock changes symbol and word duration
-		field_clk.on_change = [this](int32_t value)
-		{
-			// value is in kHz, new_value is in us
-			int32_t new_value = (options_period_per_symbol.selected_index_value() * 1000000) / (value * 1000);
-			if (new_value != field_frameduration.value())
-				field_frameduration.set_value(new_value * encoder_def->word_length, false);
-		};
-
-		options_period_per_symbol.on_change = [this](size_t, int32_t)
-		{
-			// trigger the change on both fields
-			field_clk.on_change(field_clk.value());
 		};
 
 		options_encoder.set_options(enc_options);
@@ -255,7 +237,7 @@ namespace ui
 	// 	reader.get()->reset(encoder_def, selected_symbol_indexes, false);
 	// };
 
-	// std::string OOKTxGeneratorView::generate_frame_part(const uint32_t frame_part_index, const bool reversed)
+	// std::string OOKTxGeneratorView::generate_frame(const uint32_t frame_part_index, const bool reversed)
 	// {
 	// 	int32_t mode = options_tx_method.selected_index_value();
 
@@ -332,7 +314,7 @@ namespace ui
 	// 	reader.get()->reset("0");
 	// };
 
-	// std::string OOKTxFilesView::generate_frame_part(const uint32_t frame_part_index, const bool reversed)
+	// std::string OOKTxFilesView::generate_frame(const uint32_t frame_part_index, const bool reversed)
 	// {
 	// 	return "0";
 	// }
@@ -365,7 +347,7 @@ namespace ui
 		// 	auto read_size = info_file.read(file_data, 256);
 		// 	if (!read_size.is_error())
 		// 	{
-		// 		auto pos1 = strstr(file_data, "samples_per_bit=");
+		// 		auto pos1 = strstr(file_data, "pulses_per_bit=");
 		// 		if (pos1)
 		// 		{
 		// 			pos1 += 16;
@@ -399,10 +381,8 @@ namespace ui
 			&labels,
 			&field_wordlength,
 			&field_fragments,
-			&field_clk,
-			&field_frameduration,
-			&options_period_per_symbol,
-			&field_pause_between_symbols,
+			&options_shorter_pulse_period,
+			&field_pause_between_frames,
 			&symfield_fragment_0,
 			&symfield_fragment_1,
 		});
@@ -434,36 +414,10 @@ namespace ui
 				on_waveform_change_request();
 		};
 
-		// Selecting input clock changes symbol and word duration
-		field_clk.on_change = [this](int32_t value)
-		{
-			// value is in kHz, new_value is in us
-			int32_t new_value = (options_period_per_symbol.selected_index_value() * 1000000) / (value * 1000);
-			if (new_value != field_frameduration.value())
-				field_frameduration.set_value(new_value * field_wordlength.value(), false);
-		};
-
-		// Selecting word duration changes input clock and symbol duration
-		field_frameduration.on_change = [this](int32_t value)
-		{
-			// value is in us, new_value is in kHz
-			int32_t new_value = (value * 1000) / (field_wordlength.value() * options_period_per_symbol.selected_index_value());
-			if (new_value != field_clk.value())
-				field_clk.set_value(1000000 / new_value, false);
-		};
-
-		options_period_per_symbol.on_change = [this](size_t, int32_t)
-		{
-			// trigger the change on both fields
-			field_clk.on_change(field_clk.value());
-			field_frameduration.on_change(field_frameduration.value());
-		};
-
 		// set default values
 		field_wordlength.set_value(4);
 		field_fragments.set_value(4);
-		field_clk.set_value(250);
-		options_period_per_symbol.set_by_value(10);
+		options_shorter_pulse_period.set_by_value(10);
 		symfield_fragment_0.set_next_possibility();
 
 		for (uint32_t i = 0; i < (uint32_t)field_fragments.value(); i++)
@@ -517,7 +471,7 @@ namespace ui
 	// 	reader.get()->reset("0");
 	// };
 
-	// std::string OOKTxDeBruijnView::generate_frame_part(const uint32_t frame_part_index, const bool reverse)
+	// std::string OOKTxDeBruijnView::generate_frame(const uint32_t frame_part_index, const bool reverse)
 	// // TODO: we still need to implement the reverse flag
 	// {
 	// 	uint32_t fragments_length = field_fragments.value();
@@ -567,7 +521,7 @@ namespace ui
 			&view_generator,
 
 			&checkbox_reversed,
-			// &waveform,
+			&waveform,
 			&text_progress,
 			&progress_bar,
 			&tx_view,
@@ -645,9 +599,8 @@ namespace ui
 			checkbox_reversed.set_value(false);
 		};
 
-		// start on debruijn generator
-		tab_view.set_selected(0);
-		// tab_view.set_selected(2);
+		// start on the generator tab
+		tab_view.set_selected(1);
 	}
 
 	void OOKTxView::focus()
@@ -658,9 +611,9 @@ namespace ui
 
 	void OOKTxView::refresh()
 	{
-		// generate_frame_part();
+		generate_frame();
 		progress_update(0);
-		// draw_waveform();
+		draw_waveform();
 	}
 
 	OOKTxView::~OOKTxView()
@@ -669,27 +622,33 @@ namespace ui
 		baseband::shutdown();
 	}
 
+	void OOKTxView::generate_frame()
+	{
+		// frame_fragments.clear();
+
+		// if (tab_view.selected() == 0)
+		// 	frame_fragments += view_files.generate_frame(
+		// 		frame_parts_cursor.index,
+		// 		checkbox_reversed.value());
+
+		if (tab_view.selected() == 1)
+		{
+			uint8_t selected_symbol_indexes[view_generator.encoder_def->word_length]{};
+
+			// extract values from symfield
+			for (uint32_t i = 0; i < view_generator.encoder_def->word_length; i++)
+				selected_symbol_indexes[i] = view_generator.symfield_word.get_sym(i);
+
+			generate_frame_fragments(&frame_fragments, view_generator.encoder_def, selected_symbol_indexes, checkbox_reversed.value());
+		}
+
+		// if (tab_view.selected() == 2)
+		// 	frame_fragments += view_debruijn.generate_frame(
+		// 		frame_parts_cursor.index,
+		// 		checkbox_reversed.value());
+	}
+
 	// TX methods
-	// void OOKTxView::generate_frame_part()
-	// {
-	// 	frame_fragments.clear();
-
-	// 	if (tab_view.selected() == 0)
-	// 		frame_fragments += view_files.generate_frame_part(
-	// 			frame_parts_cursor.index,
-	// 			checkbox_reversed.value());
-
-	// 	if (tab_view.selected() == 1)
-	// 		frame_fragments += view_generator.generate_frame_part(
-	// 			frame_parts_cursor.index,
-	// 			checkbox_reversed.value());
-
-	// 	if (tab_view.selected() == 2)
-	// 		frame_fragments += view_debruijn.generate_frame_part(
-	// 			frame_parts_cursor.index,
-	// 			checkbox_reversed.value());
-	// }
-
 	void OOKTxView::set_ready()
 	{
 		ready_signal = true;
@@ -737,7 +696,7 @@ namespace ui
 
 	void OOKTxView::start_tx()
 	{
-		uint32_t samples_per_bit;
+		uint32_t pulses_per_bit;
 
 		if (tx_mode != TX_MODE_IDLE)
 			stop_tx();
@@ -747,19 +706,20 @@ namespace ui
 		{
 			// TODO: disable access to all inputs
 
-			samples_per_bit = OOK_SAMPLERATE / (1000000 / (view_files.options_period_per_bit.selected_index_value()));
+			pulses_per_bit = view_files.options_period_per_bit.selected_index_value();
 
-			// auto open_error = p->open(view_files.file_path);
-
-			// if (open_error.is_valid())
-			// {
-			// 	text_progress.set("Error opening file.");
-			// 	// return; // Fixes TX bug if there's a file error
-			// }
 			auto file_reader_p = std::make_unique<FileReader>();
-			// auto p = std::make_unique<OOKEncoderReader>();
+			auto open_error = file_reader_p->open(view_files.file_path);
 
-			tx(std::move(file_reader_p), samples_per_bit);
+			if (open_error.is_valid())
+			{
+				text_progress.set("Error opening file.");
+				return; // Fixes TX bug if there's a file error
+			}
+
+			tx_mode = TX_MODE_LOADER;
+
+			tx(std::move(file_reader_p), pulses_per_bit);
 		}
 
 		// Generator View TX
@@ -770,26 +730,18 @@ namespace ui
 
 			// TODO: disable access to all inputs
 
-			samples_per_bit = OOK_SAMPLERATE / ((view_generator.field_clk.value() * 1000) / (view_generator.options_period_per_symbol.selected_index_value() / view_generator.encoder_def->bit_fragments_length_per_symbol));
+			pulses_per_bit = view_generator.options_shorter_pulse_period.selected_index_value();
 			// TODO: Reader
 
 			switch (view_generator.options_tx_method.selected_index_value())
 			{
 			case TX_MODE_MANUAL:
 			case TX_MODE_BRUTEFORCE:
-				uint8_t selected_symbol_indexes[view_generator.encoder_def->word_length]{};
-
-				// extract values from symfield
-				for (uint32_t i = 0; i < view_generator.encoder_def->word_length; i++)
-					selected_symbol_indexes[i] = view_generator.symfield_word.get_sym(i);
-
 				auto ook_encoder_reader_p = std::make_unique<OOKEncoderReader>();
 
-				ook_encoder_reader_p->frame_fragments = generate_frame_fragments(view_generator.encoder_def, selected_symbol_indexes, checkbox_reversed.value());
-				ook_encoder_reader_p->pauses_cursor.total = view_generator.field_pause_between_symbols.value();
+				ook_encoder_reader_p->frame_fragments = &frame_fragments;
+				ook_encoder_reader_p->pauses_cursor.total = view_generator.field_pause_between_frames.value();
 				ook_encoder_reader_p->repetitions_cursor.total = view_generator.field_repeat_min.value();
-
-				draw_waveform(ook_encoder_reader_p->frame_fragments);
 
 				if (view_generator.options_tx_method.selected_index_value() == TX_MODE_MANUAL)
 				{
@@ -813,30 +765,22 @@ namespace ui
 						if (this->bruteforce_cursor.is_done())
 							return;
 
-						uint8_t selected_symbol_indexes[view_generator.encoder_def->word_length]{};
-
 						this->view_generator.symfield_word.set_next_possibility();
+						generate_frame();
 
-						// extract values from symfield
-						for (uint32_t i = 0; i < this->view_generator.encoder_def->word_length; i++)
-							selected_symbol_indexes[i] = this->view_generator.symfield_word.get_sym(i);
-
-						reader.frame_fragments = generate_frame_fragments(
-							this->view_generator.encoder_def,
-							selected_symbol_indexes,
-							checkbox_reversed.value());
+						reader.frame_fragments = &this->frame_fragments;
 
 						this->bruteforce_cursor.bump();
 						reader.reset();
 
 						// trigger waveform redraw
-						draw_waveform(reader.frame_fragments);
+						draw_waveform();
 					};
 				}
 
 				ook_encoder_reader_p->reset();
 
-				tx(std::move(ook_encoder_reader_p), samples_per_bit);
+				tx(std::move(ook_encoder_reader_p), pulses_per_bit);
 				break;
 
 				// case TX_MODE_DEBRUIJN:
@@ -857,17 +801,17 @@ namespace ui
 
 			// TODO: disable access to all inputs
 
-			samples_per_bit = OOK_SAMPLERATE / ((view_debruijn.field_clk.value() * 1000) / (view_debruijn.options_period_per_symbol.selected_index_value() / view_debruijn.field_fragments.value()));
+			pulses_per_bit = view_debruijn.options_shorter_pulse_period.selected_index_value();
 			// TODO: reader
 		}
 	}
 
 	void OOKTxView::tx(
 		std::unique_ptr<stream::Reader> reader,
-		uint32_t samples_per_bit)
+		uint32_t pulses_per_bit)
 	{
-		size_t read_size = 16;
-		size_t buffer_count = 6;
+		const size_t read_size = 64;
+		const size_t buffer_count = 8;
 
 		if (!(bool)reader)
 		{
@@ -875,9 +819,8 @@ namespace ui
 			return;
 		}
 
-		tx_view.set_transmitting(true);
+		baseband::set_ook_data(pulses_per_bit);
 
-		baseband::set_ook_data(samples_per_bit);
 		stream_reader_thread = std::make_unique<StreamReaderThread>(
 			std::move(reader),
 			read_size, buffer_count,
@@ -888,6 +831,7 @@ namespace ui
 				EventDispatcher::send_message(message);
 			});
 
+		tx_view.set_transmitting(true);
 		transmitter_model.enable();
 	}
 
@@ -901,7 +845,6 @@ namespace ui
 
 	void OOKTxView::stop_tx()
 	{
-		// TODO: this should be uncommented
 		if (stream_reader_thread)
 			stream_reader_thread.reset();
 
@@ -912,16 +855,16 @@ namespace ui
 		ready_signal = false;
 
 		progress_reset();
-		// generate_frame_part();
-		// draw_waveform();
+		// generate_frame();
+		draw_waveform();
 	}
 
-	void OOKTxView::draw_waveform(std::string &frame_fragments)
+	void OOKTxView::draw_waveform()
 	{
-		uint16_t length = (uint16_t)frame_fragments.length();
+		uint16_t length = (uint16_t)std::min(frame_fragments.size(), sizeof(waveform_buffer));
 
 		for (int16_t n = 0; n < length; n++)
-			waveform_buffer[n] = (frame_fragments[n] == '0') ? 0 : 1;
+			waveform_buffer[n] = frame_fragments.at(n) ? 1 : 0;
 
 		waveform.set_length(length);
 		waveform.set_dirty();
