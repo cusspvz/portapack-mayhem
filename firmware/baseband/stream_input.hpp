@@ -32,7 +32,7 @@
 
 class StreamInput {
 public:
-	StreamInput(CaptureConfig* const config);
+	StreamInput(StreamReceiveConfig* const config);
 
 	StreamInput(const StreamInput&) = delete;
 	StreamInput(StreamInput&&) = delete;
@@ -51,7 +51,7 @@ private:
 	std::array<StreamBuffer*, buffer_count_max> buffers_empty { };
 	std::array<StreamBuffer*, buffer_count_max> buffers_full { };
 	StreamBuffer* active_buffer { nullptr };
-	CaptureConfig* const config { nullptr };
+	StreamReceiveConfig* const config { nullptr };
 	std::unique_ptr<uint8_t[]> data { };
 };
 

@@ -24,7 +24,7 @@
 BufferExchange *BufferExchange::obj{nullptr};
 
 BufferExchange::BufferExchange(
-	CaptureConfig *const config) // : config_capture { config }
+	StreamReceiveConfig *const config) // : config_capture { config }
 {
 	obj = this;
 	// In capture mode, baseband wants empty buffers, app waits for full buffers
@@ -33,7 +33,7 @@ BufferExchange::BufferExchange(
 }
 
 BufferExchange::BufferExchange(
-	StreamConfig *const config) // : config_replay { config }
+	StreamTransmitConfig *const config) // : config_replay { config }
 {
 	obj = this;
 	// In replay mode, baseband wants full buffers, app waits for empty buffers

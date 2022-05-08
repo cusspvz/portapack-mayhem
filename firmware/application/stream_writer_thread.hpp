@@ -50,13 +50,13 @@ public:
 	StreamWriterThread &operator=(const StreamWriterThread &) = delete;
 	StreamWriterThread &operator=(StreamWriterThread &&) = delete;
 
-	const CaptureConfig &state() const
+	const StreamReceiveConfig &state() const
 	{
 		return config;
 	}
 
 private:
-	CaptureConfig config;
+	StreamReceiveConfig config;
 	std::unique_ptr<stream::Writer> writer;
 	std::function<void()> success_callback;
 	std::function<void(Error)> error_callback;

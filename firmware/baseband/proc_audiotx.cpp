@@ -80,10 +80,10 @@ void AudioTXProcessor::on_message(const Message *const message)
 		audio_config(*reinterpret_cast<const AudioTXConfigMessage *>(message));
 		break;
 
-	case Message::ID::StreamConfig:
+	case Message::ID::StreamTransmitConfig:
 		configured = false;
 		bytes_read = 0;
-		stream_config(*reinterpret_cast<const StreamConfigMessage *>(message));
+		stream_config(*reinterpret_cast<const StreamTransmitConfigMessage *>(message));
 		break;
 
 	case Message::ID::SamplerateConfig:
@@ -107,7 +107,7 @@ void AudioTXProcessor::audio_config(const AudioTXConfigMessage &message)
 	resample_acc = 0;
 }
 
-void AudioTXProcessor::stream_config(const StreamConfigMessage &message)
+void AudioTXProcessor::stream_config(const StreamTransmitConfigMessage &message)
 {
 	if (message.config)
 	{

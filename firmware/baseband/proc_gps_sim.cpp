@@ -94,10 +94,10 @@ void ReplayProcessor::on_message(const Message *const message)
 		samplerate_config(*reinterpret_cast<const SamplerateConfigMessage *>(message));
 		break;
 
-	case Message::ID::StreamConfig:
+	case Message::ID::StreamTransmitConfig:
 		configured = false;
 		bytes_read = 0;
-		stream_config(*reinterpret_cast<const StreamConfigMessage *>(message));
+		stream_config(*reinterpret_cast<const StreamTransmitConfigMessage *>(message));
 		break;
 
 	// App has prefilled the buffers, we're ready to go now
@@ -117,7 +117,7 @@ void ReplayProcessor::samplerate_config(const SamplerateConfigMessage &message)
 	spectrum_interval_samples = baseband_fs / spectrum_rate_hz;
 }
 
-void ReplayProcessor::stream_config(const StreamConfigMessage &message)
+void ReplayProcessor::stream_config(const StreamTransmitConfigMessage &message)
 {
 	if (message.config)
 	{

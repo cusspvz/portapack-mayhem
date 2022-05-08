@@ -68,11 +68,11 @@ Result<uint64_t, Error> OOKEncoderReader::read(void *const buffer, const uint64_
 					break;
 
 				case OOK_READER_READING_FRAGMENT:
-					if (fragments_cursor.index == 0 && on_before_frame_fragment_usage)
-					{
-						// Allow the app to generate the fragment on demand, or at a single shot
-						on_before_frame_fragment_usage(*this);
-					};
+					// if (fragments_cursor.index == 0 && on_before_frame_fragment_usage)
+					// {
+					// 	// Allow the app to generate the fragment on demand, or at a single shot
+					// 	on_before_frame_fragment_usage(*this);
+					// };
 
 					turn_bit_on = frame_fragments->at(fragments_cursor.index);
 
@@ -128,77 +128,3 @@ Result<uint64_t, Error> OOKEncoderReader::read(void *const buffer, const uint64_
 
 	return {static_cast<size_t>(bytes_read)};
 }
-
-// Result<uint64_t, Error> OOKEncoderReader::read(void *const buffer, const uint64_t bytes)
-// {
-// 	// assuming 8bit buffer array
-// 	// TODO: we might need to measure the bit size of the buffer
-// 	const uint64_t total_bits = bytes * 8;
-// 	bool cur_bit = false;
-// 	uint64_t bits_read = 0;
-// 	std::bitset<> *bitbuffer = (std::bitset<> *)buffer;
-
-// 	// start filling the buffer
-// 	for (size_t bit_i = 0; bit_i < total_bits; bit_i++)
-// 	{
-// 		cur_bit = false;
-
-// 		if (read_type == OOK_READER_COMPLETED)
-// 		{
-// 			bitbuffer->set(bit_i, cur_bit);
-// 			continue;
-// 		}
-
-// 		if (read_type == OOK_READER_READING_FRAGMENT)
-// 		{
-// 			if (fragments_cursor.index == 0 && on_before_frame_fragment_usage)
-// 			{
-// 				// Allow the app to generate the fragment on demand, or at a single shot
-// 				on_before_frame_fragment_usage(*this);
-// 			};
-
-// 			cur_bit = frame_fragments[fragments_cursor.index] == '1';
-
-// 			fragments_cursor.bump();
-
-// 			// if completed, jump to either a pause or completed
-// 			if (fragments_cursor.is_done())
-// 			{
-// 				if (repetitions_cursor.is_done())
-// 				{
-// 					// complete
-// 					read_type = OOK_READER_COMPLETED;
-
-// 					if (on_complete)
-// 					{
-// 						on_complete(*this);
-// 					}
-// 				}
-// 				else
-// 				{
-// 					// start pause
-// 					pauses_cursor.start_over();
-// 					read_type = OOK_READER_READING_PAUSES;
-// 				}
-// 			}
-// 		}
-// 		else if (read_type == OOK_READER_READING_PAUSES)
-// 		{
-// 			// pause doesnt save anything in the bit
-// 			pauses_cursor.bump();
-
-// 			// if pause is completed, jump to the next fragment
-// 			if (pauses_cursor.is_done())
-// 			{
-// 				read_type = OOK_READER_READING_FRAGMENT;
-// 				fragments_cursor.start_over();
-// 				repetitions_cursor.bump();
-// 			}
-// 		}
-
-// 		bitbuffer->set(bit_i, cur_bit);
-// 		bits_read++;
-// 	}
-
-// 	return {static_cast<size_t>(bits_read / 8)};
-// }

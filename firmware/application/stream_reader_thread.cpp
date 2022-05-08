@@ -25,14 +25,14 @@
 #include "baseband_api.hpp"
 #include "buffer_exchange.hpp"
 
-struct BasebandReplay
+struct BasebandTransmit
 {
-	BasebandReplay(StreamConfig *const config)
+	BasebandTransmit(StreamTransmitConfig *const config)
 	{
 		baseband::replay_start(config);
 	}
 
-	~BasebandReplay()
+	~BasebandTransmit()
 	{
 		baseband::replay_stop();
 	}
@@ -77,7 +77,7 @@ msg_t StreamReaderThread::static_fn(void *arg)
 
 uint32_t StreamReaderThread::run()
 {
-	BasebandReplay replay{&config};
+	BasebandTransmit replay{&config};
 	BufferExchange buffers{&config};
 
 	StreamBuffer *prefill_buffer{nullptr};

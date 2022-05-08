@@ -74,9 +74,9 @@ public:
 		ChannelSpectrumConfig = 15,
 		SpectrumStreamingConfig = 16,
 		DisplaySleep = 17,
-		CaptureConfig = 18,
+		StreamReceiveConfig = 18,
 		StreamWriterThreadDone = 19,
-		StreamConfig = 20,
+		StreamTransmitConfig = 20,
 		StreamReaderThreadDone = 21,
 		AFSKRxConfigure = 22,
 		StatusRefresh = 23,
@@ -636,7 +636,7 @@ public:
 	}
 };
 
-struct CaptureConfig
+struct StreamReceiveConfig
 {
 	const size_t write_size;
 	const size_t buffer_count;
@@ -645,7 +645,7 @@ struct CaptureConfig
 	FIFO<StreamBuffer *> *fifo_buffers_empty;
 	FIFO<StreamBuffer *> *fifo_buffers_full;
 
-	constexpr CaptureConfig(
+	constexpr StreamReceiveConfig(
 		const size_t write_size,
 		const size_t buffer_count) : write_size{write_size},
 									 buffer_count{buffer_count},
@@ -670,19 +670,19 @@ struct CaptureConfig
 	}
 };
 
-class CaptureConfigMessage : public Message
+class StreamReceiveConfigMessage : public Message
 {
 public:
-	constexpr CaptureConfigMessage(
-		CaptureConfig *const config) : Message{ID::CaptureConfig},
+	constexpr StreamReceiveConfigMessage(
+		StreamReceiveConfig *const config) : Message{ID::StreamReceiveConfig},
 									   config{config}
 	{
 	}
 
-	CaptureConfig *const config;
+	StreamReceiveConfig *const config;
 };
 
-struct StreamConfig
+struct StreamTransmitConfig
 {
 	const size_t read_size;
 	const size_t buffer_count;
@@ -690,7 +690,7 @@ struct StreamConfig
 	FIFO<StreamBuffer *> *fifo_buffers_empty;
 	FIFO<StreamBuffer *> *fifo_buffers_full;
 
-	constexpr StreamConfig(
+	constexpr StreamTransmitConfig(
 		const size_t read_size,
 		const size_t buffer_count) : read_size{read_size},
 									 buffer_count{buffer_count},
@@ -701,16 +701,16 @@ struct StreamConfig
 	}
 };
 
-class StreamConfigMessage : public Message
+class StreamTransmitConfigMessage : public Message
 {
 public:
-	constexpr StreamConfigMessage(
-		StreamConfig *const config) : Message{ID::StreamConfig},
+	constexpr StreamTransmitConfigMessage(
+		StreamTransmitConfig *const config) : Message{ID::StreamTransmitConfig},
 									  config{config}
 	{
 	}
 
-	StreamConfig *const config;
+	StreamTransmitConfig *const config;
 };
 
 class TXProgressMessage : public Message
@@ -979,7 +979,7 @@ class OOKConfigureMessage : public Message
 public:
 	constexpr OOKConfigureMessage(
 		const uint32_t pulses_per_bit) : Message{ID::OOKConfigure},
-										  pulses_per_bit(pulses_per_bit)
+										 pulses_per_bit(pulses_per_bit)
 	{
 	}
 

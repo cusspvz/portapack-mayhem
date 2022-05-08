@@ -30,8 +30,8 @@
 class BufferExchange
 {
 public:
-	BufferExchange(CaptureConfig *const config);
-	BufferExchange(StreamConfig *const config);
+	BufferExchange(StreamReceiveConfig *const config);
+	BufferExchange(StreamTransmitConfig *const config);
 	~BufferExchange();
 
 	BufferExchange(const BufferExchange &) = delete;
@@ -92,8 +92,8 @@ public:
 	}
 
 private:
-	// CaptureConfig* const config_capture;
-	// StreamConfig* const config_replay;
+	// StreamReceiveConfig* const config_capture;
+	// StreamTransmitConfig* const config_replay;
 	FIFO<StreamBuffer *> *fifo_buffers_for_baseband{nullptr};
 	FIFO<StreamBuffer *> *fifo_buffers_for_application{nullptr};
 	Thread *thread{nullptr};

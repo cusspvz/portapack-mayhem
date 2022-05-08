@@ -340,27 +340,27 @@ namespace baseband
 		send_message(&message);
 	}
 
-	void capture_start(CaptureConfig *const config)
+	void capture_start(StreamReceiveConfig *const config)
 	{
-		CaptureConfigMessage message{config};
+		StreamReceiveConfigMessage message{config};
 		send_message(&message);
 	}
 
 	void capture_stop()
 	{
-		CaptureConfigMessage message{nullptr};
+		StreamReceiveConfigMessage message{nullptr};
 		send_message(&message);
 	}
 
-	void replay_start(StreamConfig *const config)
+	void replay_start(StreamTransmitConfig *const config)
 	{
-		StreamConfigMessage message{config};
+		StreamTransmitConfigMessage message{config};
 		send_message(&message);
 	}
 
 	void replay_stop()
 	{
-		StreamConfigMessage message{nullptr};
+		StreamTransmitConfigMessage message{nullptr};
 		send_message(&message);
 	}
 

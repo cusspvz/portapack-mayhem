@@ -50,7 +50,7 @@ public:
 	StreamReaderThread &operator=(const StreamReaderThread &) = delete;
 	StreamReaderThread &operator=(StreamReaderThread &&) = delete;
 
-	const StreamConfig &state() const
+	const StreamTransmitConfig &state() const
 	{
 		return config;
 	};
@@ -63,7 +63,7 @@ public:
 	};
 
 private:
-	StreamConfig config;
+	StreamTransmitConfig config;
 	std::unique_ptr<stream::Reader> reader;
 	bool *ready_sig;
 	std::function<void(uint32_t return_code)> terminate_callback;

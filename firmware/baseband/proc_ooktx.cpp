@@ -29,12 +29,13 @@
 
 void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 {
-	int8_t re, im;
-
-	// This is called at 2.28M/2048 = 1113Hz
 
 	if (!configured)
 		return;
+
+	// This is called at 2.28M/2048 = 1113Hz
+	// Calculate the amount of bits this will need to read from the memory
+	int8_t re, im;
 
 	for (size_t i = 0; i < buffer.count; i++)
 	{
@@ -99,7 +100,7 @@ void OOKTxProcessor::process()
 
 		if (stream)
 		{
-			bytes_streamed = stream->read(&bit_buffer, bit_buffer_byte_size);
+			bytes_streamed = stream->read(&bit_buffer, OOK_BYTE_BUFFER_SIZE);
 			bytes_read += bytes_streamed;
 		}
 
@@ -114,7 +115,7 @@ void OOKTxProcessor::process()
 	}
 
 	// set the currently transmitting bit
-	current_bit = (bit_buffer & (1UL << (bit_cursor.total - bit_cursor.index - 1))) > 0;
+	current_bit = bit_buffer[bit_cursor.index];
 }
 
 void OOKTxProcessor::done()
@@ -126,7 +127,25 @@ void OOKTxProcessor::done()
 	txprogress_message.progress = bytes_read;
 	txprogress_message.done = true;
 	shared_memory.application_queue.push(txprogress_message);
+
+	reset();
+}
+
+void OOKTxProcessor::reset()
+{
 	configured = false;
+
+	// clear buffer
+	bit_buffer.reset();
+
+	bytes_read = 0;
+	txprogress_message.progress = 0;
+	txprogress_message.done = false;
+
+	bit_sampling.start_over();
+	bit_cursor.start_over();
+	// bit_cursor.total = 8;
+	bit_cursor.total = OOK_BIT_BUFFER_SIZE;
 }
 
 void OOKTxProcessor::on_message(const Message *const message)
@@ -137,25 +156,16 @@ void OOKTxProcessor::on_message(const Message *const message)
 		ook_config(*reinterpret_cast<const OOKConfigureMessage *>(message));
 		break;
 
-	case Message::ID::StreamConfig:
-		stream_config(*reinterpret_cast<const StreamConfigMessage *>(message));
+	case Message::ID::StreamTransmitConfig:
+		// bytes_read = 0;
+		// configured = false;
+
+		stream_config(*reinterpret_cast<const StreamTransmitConfigMessage *>(message));
 		break;
 
 	// App has prefilled the buffers, we're ready to go now
 	case Message::ID::FIFOData:
-		txprogress_message.progress = 0;
-		txprogress_message.done = false;
-
-		bit_sampling.start_over();
-
-		bit_cursor.start_over();
-		bit_cursor.total = bit_buffer_byte_size * 8;
-		current_bit = false;
-
 		configured = true;
-
-		// share init progress
-		shared_memory.application_queue.push(txprogress_message);
 		break;
 
 	default:
@@ -165,16 +175,12 @@ void OOKTxProcessor::on_message(const Message *const message)
 
 void OOKTxProcessor::ook_config(const OOKConfigureMessage &message)
 {
-	configured = false;
-
 	bit_sampling.total = baseband_fs / (1000000 / message.pulses_per_bit);
-	bit_sampling.start_over();
-};
-void OOKTxProcessor::stream_config(const StreamConfigMessage &message)
-{
-	configured = false;
-	bytes_read = 0;
 
+	reset();
+};
+void OOKTxProcessor::stream_config(const StreamTransmitConfigMessage &message)
+{
 	if (message.config)
 	{
 		stream = std::make_unique<StreamOutput>(message.config);
@@ -184,6 +190,8 @@ void OOKTxProcessor::stream_config(const StreamConfigMessage &message)
 	}
 	else
 	{
+		// I assume that the logic on top will handle the reset piece, so just resetting the pointer
+		// so the stream continues to read the buffer
 		stream.reset();
 	}
 };

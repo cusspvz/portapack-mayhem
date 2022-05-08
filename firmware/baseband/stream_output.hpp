@@ -34,7 +34,7 @@
 class StreamOutput
 {
 public:
-	StreamOutput(StreamConfig *const config);
+	StreamOutput(StreamTransmitConfig *const config);
 
 	StreamOutput(const StreamOutput &) = delete;
 	StreamOutput(StreamOutput &&) = delete;
@@ -53,7 +53,7 @@ private:
 	std::array<StreamBuffer *, buffer_count_max> buffers_empty{};
 	std::array<StreamBuffer *, buffer_count_max> buffers_full{};
 	StreamBuffer *active_buffer{nullptr};
-	StreamConfig *const config{nullptr};
+	StreamTransmitConfig *const config{nullptr};
 	std::unique_ptr<uint8_t[]> data{};
 };
 

@@ -38,9 +38,8 @@ namespace encoders
 	struct encoder_def_t
 	{
 		// Encoder details
-		char name[16];			  // Encoder chip ref/name
-		bool is_vuln_to_debruijn; // True if the encoder is vulnerable to the debruijn attack
-		uint8_t repeat_min;		  // Minimum repeat count (ignored on DeBruijn mode)
+		char name[16];		// Encoder chip ref/name
+		uint8_t repeat_min; // Minimum repeat count (ignored on DeBruijn mode)
 
 		// Word and Symbol format (Address, Data, Sync)
 		uint8_t word_length;  // Total # of symbols (not counting sync)
@@ -51,6 +50,7 @@ namespace encoders
 		char symfield_data_symbols[8];			 // Same as symfield_address_symbols
 		uint8_t bit_fragments_length_per_symbol; // Indicates the length of the symbols_bit_fragmentss. Will be used to divide the symbol clock osc periods
 		bool symbols_bit_fragments[4][20];		 // List of fragments for each symbol in previous *_symbols list order
+		uint8_t sync_bit_length;				 // length of symbols_bit_fragments
 		bool sync_bit_fragment[64];				 // Like symbols_bit_fragments
 
 		// timing
@@ -70,7 +70,6 @@ namespace encoders
 		{
 			// Encoder details
 			"8-bits", // name
-			true,	  // is_vuln_to_debruijn
 			50,		  // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -82,9 +81,10 @@ namespace encoders
 			"01", // symfield_data_symbols
 			4,	  // bit_fragments_length_per_symbol
 			{
-				{true, false, false, false},
-				{true, true, true, false},
+				{1, 0, 0, 0},
+				{1, 1, 1, 0},
 			},	// symbols_bit_fragments
+			0,	// sync_bit_length
 			{}, // sync_bit_fragment
 
 			// Speed and clocks
@@ -97,7 +97,6 @@ namespace encoders
 		{
 			// Encoder details
 			"16-bits", // name
-			true,	   // is_vuln_to_debruijn
 			50,		   // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -109,9 +108,10 @@ namespace encoders
 			"01", // symfield_data_symbols
 			4,	  // bit_fragments_length_per_symbol
 			{
-				{true, false, false, false},
-				{true, true, true, false},
+				{1, 0, 0, 0},
+				{1, 1, 1, 0},
 			},	// symbols_bit_fragments
+			0,	// sync_bit_length
 			{}, // sync_bit_fragment
 
 			// Speed and clocks
@@ -124,7 +124,6 @@ namespace encoders
 		{
 			// Encoder details
 			"Doorbel", // name
-			true,	   // is_vuln_to_debruijn
 			32,		   // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -136,9 +135,10 @@ namespace encoders
 			"01", // symfield_data_symbols
 			4,	  // bit_fragments_length_per_symbol
 			{
-				{true, false, false, false},
-				{true, true, true, false},
+				{1, 0, 0, 0},
+				{1, 1, 1, 0},
 			},	// symbols_bit_fragments
+			0,	// sync_bit_length
 			{}, // sync_bit_fragment
 
 			// Speed and clocks
@@ -151,7 +151,6 @@ namespace encoders
 		{
 			// Encoder details
 			"OH200DC", // name
-			true,	   // is_vuln_to_debruijn
 			8,		   // repeat_min=230, looks like 8 is still working
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -163,9 +162,10 @@ namespace encoders
 			"01", // symfield_data_symbols
 			8,	  // bit_fragments_length_per_symbol
 			{
-				{true, true, true, true, false, false, false, false},
-				{true, false, false, false, false, false, false, false},
+				{1, 1, 1, 1, 0, 0, 0, 0},
+				{1, 0, 0, 0, 0, 0, 0, 0},
 			},	// symbols_bit_fragments
+			0,	// sync_bit_length
 			{}, // sync_bit_fragment
 
 			// Speed and clocks
@@ -178,7 +178,6 @@ namespace encoders
 		{
 			// Encoder details
 			"2260-R2", // name
-			false,	   // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			2,		   // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -190,11 +189,12 @@ namespace encoders
 			"01",  // symfield_data_symbols
 			8,	   // bit_fragments_length_per_symbol
 			{
-				{true, false, false, false, true, false, false, false},
-				{true, true, true, false, true, true, true, false},
-				{true, false, false, false, true, true, true, false},
-			},																																																								 // symbols_bit_fragments
-			{true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, // sync_bit_fragment
+				{1, 0, 0, 0, 1, 0, 0, 0},
+				{1, 1, 1, 0, 1, 1, 1, 0},
+				{1, 0, 0, 0, 1, 1, 1, 0},
+			},																								  // symbols_bit_fragments
+			32,																								  // sync_bit_length
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // sync_bit_fragment
 
 			// Speed and clocks
 			128, // shorter_pulse_period
@@ -206,7 +206,6 @@ namespace encoders
 		{
 			// Encoder details
 			"2260-R4", // name
-			false,	   // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			2,		   // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -218,11 +217,12 @@ namespace encoders
 			"01",  // symfield_data_symbols
 			8,	   // bit_fragments_length_per_symbol
 			{
-				{true, false, false, true, false, false, false},
-				{true, true, true, false, true, true, true, false},
-				{true, false, false, false, true, true, true, false},
-			},																																																								 // symbols_bit_fragments
-			{true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, // sync_bit_fragment
+				{1, 0, 0, 1, 0, 0, 0},
+				{1, 1, 1, 0, 1, 1, 1, 0},
+				{1, 0, 0, 0, 1, 1, 1, 0},
+			},																								  // symbols_bit_fragments
+			32,																								  // sync_bit_length
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // sync_bit_fragment
 
 			// Speed and clocks
 			128, // shorter_pulse_period
@@ -234,7 +234,6 @@ namespace encoders
 		{
 			// Encoder details
 			"2262", // name
-			false,	// is_vuln_to_debruijn - false, as it contains a preamble and sync
 			4,		// repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -246,11 +245,12 @@ namespace encoders
 			"01F", // symfield_data_symbols
 			8,	   // bit_fragments_length_per_symbol
 			{
-				{true, false, false, false, true, false, false, false},
-				{true, true, true, false, true, true, true, false},
-				{true, false, false, false, true, true, true, false},
-			},																																																								 // symbols_bit_fragments
-			{true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, // sync_bit_fragment
+				{1, 0, 0, 0, 1, 0, 0, 0},
+				{1, 1, 1, 0, 1, 1, 1, 0},
+				{1, 0, 0, 0, 1, 1, 1, 0},
+			},																								  // symbols_bit_fragments
+			32,																								  // sync_bit_length
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // sync_bit_fragment
 
 			// Speed and clocks
 			4, // shorter_pulse_period
@@ -262,7 +262,6 @@ namespace encoders
 		{
 			// Encoder details
 			"16-bit", // name
-			false,	  // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			50,		  // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -274,10 +273,11 @@ namespace encoders
 			"01", // symfield_data_symbols
 			4,	  // bit_fragments_length_per_symbol
 			{
-				{true, true, true, false},
-				{true, false, false, false},
-			},																																					// symbols_bit_fragments
-			{true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, // sync_bit_fragment
+				{1, 1, 1, 0},
+				{1, 0, 0, 0},
+			},																 // symbols_bit_fragments
+			21,																 // sync_bit_length
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // sync_bit_fragment
 
 			// Speed and clocks
 			8, // shorter_pulse_period
@@ -289,7 +289,6 @@ namespace encoders
 		{
 			// Encoder details
 			"1527", // name
-			false,	// is_vuln_to_debruijn - false, as it contains a preamble and sync
 			4,		// repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -301,10 +300,11 @@ namespace encoders
 			"01", // symfield_data_symbols
 			4,	  // bit_fragments_length_per_symbol
 			{
-				{true, false, false, false},
-				{true, true, true, false},
-			},																																																								 // symbols_bit_fragments
-			{true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, // sync_bit_fragment
+				{1, 0, 0, 0},
+				{1, 1, 1, 0},
+			},																								  // symbols_bit_fragments
+			32,																								  // sync_bit_length
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // sync_bit_fragment
 
 			// Speed and clocks
 			32, // shorter_pulse_period
@@ -316,7 +316,6 @@ namespace encoders
 		{
 			// Encoder details
 			"526E", // name
-			true,	// is_vuln_to_debruijn - false, as it contains a preamble and sync
 			4,		// repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -328,9 +327,10 @@ namespace encoders
 			"01", // symfield_data_symbols
 			3,	  // bit_fragments_length_per_symbol
 			{
-				{true, true, false},
-				{true, false, false},
+				{1, 1, 0},
+				{1, 0, 0},
 			},	// symbols_bit_fragments
+			0,	// sync_bit_length
 			{}, // sync_bit_fragment
 
 			// Speed and clocks
@@ -343,7 +343,6 @@ namespace encoders
 		{
 			// Encoder details
 			"12E", // name
-			false, // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			4,	   // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -355,10 +354,11 @@ namespace encoders
 			"01", // symfield_data_symbols
 			3,	  // bit_fragments_length_per_symbol
 			{
-				{false, true, true},
-				{false, false, true},
-			},																																																																	// symbols_bit_fragments
-			{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true}, // sync_bit_fragment
+				{0, 1, 1},
+				{0, 0, 1},
+			},																												 // symbols_bit_fragments
+			37,																												 // sync_bit_length
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, // sync_bit_fragment
 
 			// Speed and clocks
 			1, // shorter_pulse_period
@@ -370,7 +370,6 @@ namespace encoders
 		{
 			// Encoder details
 			"5026", // name
-			false,	// is_vuln_to_debruijn - false, as it contains a preamble and sync
 			4,		// repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -382,12 +381,13 @@ namespace encoders
 			"0123", // symfield_data_symbols
 			16,		// bit_fragments_length_per_symbol
 			{
-				{true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false},
-				{true, true, true, true, true, true, true, false, true, true, true, true, true, true, true, false},
-				{true, true, true, true, true, true, true, false, true, false, false, false, false, false, false, false},
-				{true, false, false, false, false, false, false, false, true, true, true, true, true, true, true, false},
-			},																																																																																				 // symbols_bit_fragments
-			{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true}, // sync_bit_fragment // does it make sense? isnt it just a pause in between frames?
+				{1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+				{1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0},
+				{1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+				{1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0},
+			},																																				  // symbols_bit_fragments
+			48,																																				  // sync_bit_length // does it make sense? isnt it just a pause in between frames?
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, // sync_bit_fragment // does it make sense? isnt it just a pause in between frames?
 
 			// Speed and clocks
 			8, // shorter_pulse_period
@@ -399,7 +399,6 @@ namespace encoders
 		{
 			// Encoder details
 			"UM3750", // name
-			false,	  // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			4,		  // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -411,10 +410,11 @@ namespace encoders
 			"01", // symfield_data_symbols
 			3,	  // bit_fragments_length_per_symbol
 			{
-				{false, true, true},
-				{false, false, true},
-			},					  // symbols_bit_fragments
-			{false, false, true}, // sync_bit_fragment
+				{0, 1, 1},
+				{0, 0, 1},
+			},		   // symbols_bit_fragments
+			3,		   // sync_bit_length
+			{0, 0, 1}, // sync_bit_fragment
 
 			// Encoder details
 
@@ -433,7 +433,6 @@ namespace encoders
 		{
 			// Encoder details
 			"UM3758", // name
-			false,	  // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			4,		  // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -445,11 +444,12 @@ namespace encoders
 			"01",  // symfield_data_symbols
 			6,	   // bit_fragments_length_per_symbol
 			{
-				{false, true, true, false, true, true},
-				{false, false, true, false, false, true},
-				{false, true, true, false, false, true},
-			},		// symbols_bit_fragments
-			{true}, // sync_bit_fragment
+				{0, 1, 1, 0, 1, 1},
+				{0, 0, 1, 0, 0, 1},
+				{0, 1, 1, 0, 0, 1},
+			},	 // symbols_bit_fragments
+			1,	 // sync_bit_length
+			{1}, // sync_bit_fragment
 
 			// Speed and clocks
 			16, // shorter_pulse_period
@@ -461,7 +461,6 @@ namespace encoders
 		{
 			// Encoder details
 			"BA5104", // name
-			false,	  // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			4,		  // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -473,9 +472,10 @@ namespace encoders
 			"01", // symfield_data_symbols
 			4,	  // bit_fragments_length_per_symbol
 			{
-				{true, false, false, false},
-				{true, true, true, false},
+				{1, 0, 0, 0},
+				{1, 1, 1, 0},
 			},	// symbols_bit_fragments
+			0,	// sync_bit_length
 			{}, // sync_bit_fragment
 
 			// Speed and clocks
@@ -488,7 +488,6 @@ namespace encoders
 		{
 			// Encoder details
 			"145026", // name
-			false,	  // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			2,		  // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -500,11 +499,12 @@ namespace encoders
 			"01",  // symfield_data_symbols
 			16,	   // bit_fragments_length_per_symbol
 			{
-				{false, true, true, true, true, true, true, true, false, true, true, true, true, true, true, true},
-				{false, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false},
-				{false, true, true, true, true, true, true, true, false, true, false, false, false, false, false, false},
-			},																																// symbols_bit_fragments
-			{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false}, // sync_bit_fragment
+				{0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1},
+				{0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
+				{0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0},
+			},														// symbols_bit_fragments
+			18,														// sync_bit_length
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // sync_bit_fragment
 
 			// Speed and clocks
 			1, // shorter_pulse_period
@@ -516,7 +516,6 @@ namespace encoders
 		{
 			// Encoder details
 			"HT6***", // name
-			false,	  // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			3,		  // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -528,12 +527,13 @@ namespace encoders
 			"01",  // symfield_data_symbols
 			6,	   // bit_fragments_length_per_symbol
 			{
-				{false, true, true, false, true, true},
-				{false, false, true, false, false, true},
-				{false, false, true, false, true, true},
+				{0, 1, 1, 0, 1, 1},
+				{0, 0, 1, 0, 0, 1},
+				{0, 0, 1, 0, 1, 1},
 			}, // symbols_bit_fragments
 			// "0000000000000000000000000000000000001011001011001",
-			{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, true, true, false, false, true, false, true, true, false, false, true}, // sync_bit_fragment
+			49,																																					 // sync_bit_length
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1}, // sync_bit_fragment
 
 			// Speed and clocks
 			33, // shorter_pulse_period
@@ -545,7 +545,6 @@ namespace encoders
 		{
 			// Encoder details
 			"TC9148", // name
-			true,	  // is_vuln_to_debruijn - false, as it contains a preamble and sync
 			3,		  // repeat_min
 
 			// Word and Symbol format (Address, Data, Sync)
@@ -557,9 +556,10 @@ namespace encoders
 			"01", // symfield_data_symbols
 			4,	  // bit_fragments_length_per_symbol
 			{
-				{true, false, false, false},
-				{true, true, true, false},
+				{1, 0, 0, 0},
+				{1, 1, 1, 0},
 			},	// symbols_bit_fragments
+			0,	// sync_bit_length
 			{}, // sync_bit_fragment
 
 			// Speed and clocks

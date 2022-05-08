@@ -99,10 +99,10 @@ namespace encoders
 		{
 			if (encoder_def->word_format[i] == 'S')
 			{
-				frame_fragments->insert(
-					frame_fragments->end(),
-					std::begin(encoder_def->sync_bit_fragment),
-					std::end(encoder_def->sync_bit_fragment));
+				for (uint8_t i = 0; i < encoder_def->sync_bit_length; i++)
+				{
+					frame_fragments->insert(frame_fragments->end(), 1, encoder_def->sync_bit_fragment[i]);
+				}
 			}
 			else
 			{

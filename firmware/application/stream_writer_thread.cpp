@@ -24,14 +24,14 @@
 #include "baseband_api.hpp"
 #include "buffer_exchange.hpp"
 
-struct BasebandCapture
+struct BasebandReceive
 {
-	BasebandCapture(CaptureConfig *const config)
+	BasebandReceive(StreamReceiveConfig *const config)
 	{
 		baseband::capture_start(config);
 	}
 
-	~BasebandCapture()
+	~BasebandReceive()
 	{
 		baseband::capture_stop();
 	}
@@ -83,7 +83,7 @@ msg_t StreamWriterThread::static_fn(void *arg)
 
 Optional<Error> StreamWriterThread::run()
 {
-	BasebandCapture capture{&config};
+	BasebandReceive capture{&config};
 	BufferExchange buffers{&config};
 
 	while (!chThdShouldTerminate())

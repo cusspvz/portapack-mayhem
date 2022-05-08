@@ -73,7 +73,7 @@ namespace ui
 			check_if_encoder_is_vuln_to_debruijn();
 
 			// reset the debruijn sequencer in case the encoder is vulnerable
-			if (encoder_def->is_vuln_to_debruijn)
+			if (encoder_def->sync_bit_length == 0)
 			{
 				reset_debruijn();
 			}
@@ -127,7 +127,7 @@ namespace ui
 	void OOKTxGeneratorView::check_if_encoder_is_vuln_to_debruijn()
 	{
 		// if the selected tx method is DEBRUIJN, check if the encoder is vulnerable to DEBRUIJN
-		if (options_tx_method.selected_index_value() == TX_MODE_DEBRUIJN && !encoder_def->is_vuln_to_debruijn)
+		if (options_tx_method.selected_index_value() == TX_MODE_DEBRUIJN && encoder_def->sync_bit_length > 0)
 		{
 			if (on_status_change)
 				on_status_change("Not vuln to DeBruijn");
@@ -649,10 +649,10 @@ namespace ui
 	}
 
 	// TX methods
-	void OOKTxView::set_ready()
-	{
-		ready_signal = true;
-	}
+	// void OOKTxView::set_ready()
+	// {
+	// 	ready_signal = true;
+	// }
 
 	void
 	OOKTxView::handle_stream_reader_thread_done(const uint32_t return_code)
@@ -810,14 +810,14 @@ namespace ui
 		std::unique_ptr<stream::Reader> reader,
 		uint32_t pulses_per_bit)
 	{
-		const size_t read_size = 64;
-		const size_t buffer_count = 8;
-
 		if (!(bool)reader)
 		{
 			tx_mode = TX_MODE_IDLE;
 			return;
 		}
+
+		const size_t read_size = 1024;
+		const size_t buffer_count = 2;
 
 		baseband::set_ook_data(pulses_per_bit);
 

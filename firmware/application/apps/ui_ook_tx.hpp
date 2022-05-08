@@ -300,7 +300,6 @@ namespace ui
 		std::string err{""};
 
 		// TX related
-		void set_ready();
 		std::unique_ptr<StreamReaderThread>
 			stream_reader_thread{};
 		bool ready_signal{false};
@@ -392,7 +391,7 @@ namespace ui
 				const auto message = static_cast<const RequestSignalMessage *>(p);
 				if (message->signal == RequestSignalMessage::Signal::FillRequest)
 				{
-					this->set_ready();
+					this->ready_signal = true;
 				}
 			}};
 

@@ -68,7 +68,7 @@ private:
 	uint32_t bytes_read{0};
 
 	void samplerate_config(const SamplerateConfigMessage &message);
-	void stream_config(const StreamConfigMessage &message);
+	void stream_config(const StreamTransmitConfigMessage &message);
 
 	TXProgressMessage txprogress_message{};
 	RequestSignalMessage sig_message{RequestSignalMessage::Signal::FillRequest};

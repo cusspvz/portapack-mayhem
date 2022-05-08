@@ -32,10 +32,14 @@
 #include <array>
 #include <memory>
 
+const uint8_t OOK_BIT_BUFFER_SIZE = 32;
+const uint8_t OOK_BYTE_BUFFER_SIZE = OOK_BIT_BUFFER_SIZE / 8;
+
 class OOKTxProcessor : public BasebandProcessor
 {
 public:
 	void execute(const buffer_c8_t &buffer) override;
+	void reset();
 	void process();
 	void done();
 
@@ -52,8 +56,8 @@ private:
 	// streaming approach
 	uint32_t bytes_read{0};
 	std::unique_ptr<StreamOutput> stream{};
-	uint8_t bit_buffer_byte_size = 1;
-	uint8_t bit_buffer{};
+	// uint8_t bit_buffer;
+	std::bitset<OOK_BIT_BUFFER_SIZE> bit_buffer;
 	cursor bit_cursor{};
 	bool current_bit = false;
 
@@ -62,7 +66,7 @@ private:
 	uint32_t phase{0}, sphase{0};
 
 	void ook_config(const OOKConfigureMessage &message);
-	void stream_config(const StreamConfigMessage &message);
+	void stream_config(const StreamTransmitConfigMessage &message);
 
 	TXProgressMessage txprogress_message{};
 	RequestSignalMessage sig_message{RequestSignalMessage::Signal::FillRequest};

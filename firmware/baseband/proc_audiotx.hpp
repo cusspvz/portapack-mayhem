@@ -58,7 +58,7 @@ private:
 
 	void samplerate_config(const SamplerateConfigMessage &message);
 	void audio_config(const AudioTXConfigMessage &message);
-	void stream_config(const StreamConfigMessage &message);
+	void stream_config(const StreamTransmitConfigMessage &message);
 
 	TXProgressMessage txprogress_message{};
 	RequestSignalMessage sig_message{RequestSignalMessage::Signal::FillRequest};

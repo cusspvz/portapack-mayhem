@@ -38,7 +38,7 @@ enum OOKEncoderReaderReadType
 class OOKEncoderReader : public stream::Reader
 {
 public:
-	std::function<void(OOKEncoderReader &)> on_before_frame_fragment_usage{};
+	// std::function<void(OOKEncoderReader &)> on_before_frame_fragment_usage{};
 	std::function<void(OOKEncoderReader &)> on_complete{};
 
 	OOKEncoderReader() = default;
