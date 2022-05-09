@@ -72,13 +72,12 @@ namespace ui
 		void start();
 		void stop(const bool do_loop);
 		bool is_active() const;
-		void set_ready();
 		void handle_stream_reader_thread_done(const uint32_t return_code);
 		void file_error();
 
 		std::filesystem::path file_path{};
 		std::unique_ptr<StreamReaderThread> stream_reader_thread{};
-		bool ready_signal{false};
+		// bool ready_signal{false};
 
 		Labels labels{
 			{{10 * 8, 2 * 16}, "GAIN   A:", Color::light_grey()}};
@@ -134,17 +133,6 @@ namespace ui
 			{
 				const auto message = *reinterpret_cast<const StreamReaderThreadDoneMessage *>(p);
 				this->handle_stream_reader_thread_done(message.return_code);
-			}};
-
-		MessageHandlerRegistration message_handler_fifo_signal{
-			Message::ID::RequestSignal,
-			[this](const Message *const p)
-			{
-				const auto message = static_cast<const RequestSignalMessage *>(p);
-				if (message->signal == RequestSignalMessage::Signal::FillRequest)
-				{
-					this->set_ready();
-				}
 			}};
 
 		MessageHandlerRegistration message_handler_tx_progress{

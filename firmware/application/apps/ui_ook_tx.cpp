@@ -648,12 +648,6 @@ namespace ui
 		// 		checkbox_reversed.value());
 	}
 
-	// TX methods
-	// void OOKTxView::set_ready()
-	// {
-	// 	ready_signal = true;
-	// }
-
 	void
 	OOKTxView::handle_stream_reader_thread_done(const uint32_t return_code)
 	{
@@ -824,7 +818,7 @@ namespace ui
 		stream_reader_thread = std::make_unique<StreamReaderThread>(
 			std::move(reader),
 			read_size, buffer_count,
-			&ready_signal,
+			// &ready_signal,
 			[this](uint32_t return_code)
 			{
 				StreamReaderThreadDoneMessage message{return_code};
@@ -852,7 +846,7 @@ namespace ui
 		tx_mode = TX_MODE_IDLE;
 		tx_view.set_transmitting(false);
 		view_generator.symfield_word.set_focusable(true);
-		ready_signal = false;
+		// ready_signal = false;
 
 		progress_reset();
 		// generate_frame();

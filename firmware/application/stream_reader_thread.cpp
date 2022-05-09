@@ -44,10 +44,8 @@ StreamReaderThread::StreamReaderThread(
 	std::unique_ptr<stream::Reader> reader,
 	size_t read_size,
 	size_t buffer_count,
-	bool *ready_signal,
 	std::function<void(uint32_t return_code)> terminate_callback) : config{read_size, buffer_count},
 																	reader{std::move(reader)},
-																	ready_sig{ready_signal},
 																	terminate_callback{std::move(terminate_callback)}
 {
 	// Need significant stack for FATFS
@@ -56,6 +54,8 @@ StreamReaderThread::StreamReaderThread(
 
 StreamReaderThread::~StreamReaderThread()
 {
+	ready_sig = false;
+
 	if (thread)
 	{
 		chThdTerminate(thread);
@@ -84,7 +84,8 @@ uint32_t StreamReaderThread::run()
 
 	// Wait for FIFOs to be allocated in baseband
 	// Wait for ui_replay_view to tell us that the buffers are ready (awful :( )
-	while (!(*ready_sig))
+	// Edit: moved the signaling ownership to this class
+	while (!ready_sig)
 	{
 		chThdSleep(100);
 	};

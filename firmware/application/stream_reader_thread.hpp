@@ -41,7 +41,6 @@ public:
 		std::unique_ptr<stream::Reader> reader,
 		size_t read_size,
 		size_t buffer_count,
-		bool *ready_signal,
 		std::function<void(uint32_t return_code)> terminate_callback);
 	~StreamReaderThread();
 
@@ -65,9 +64,20 @@ public:
 private:
 	StreamTransmitConfig config;
 	std::unique_ptr<stream::Reader> reader;
-	bool *ready_sig;
+	bool ready_sig;
 	std::function<void(uint32_t return_code)> terminate_callback;
 	Thread *thread{nullptr};
+
+	MessageHandlerRegistration message_handler_fifo_signal{
+		Message::ID::RequestSignal,
+		[this](const Message *const p)
+		{
+			const auto message = static_cast<const RequestSignalMessage *>(p);
+			if (message->signal == RequestSignalMessage::Signal::FillRequest)
+			{
+				this->ready_sig = true;
+			}
+		}};
 
 	static msg_t static_fn(void *arg);
 

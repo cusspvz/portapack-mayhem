@@ -69,7 +69,7 @@ namespace ui
 		const size_t read_size{2048}; // Less ?
 		const size_t buffer_count{3};
 		std::unique_ptr<StreamReaderThread> stream_reader_thread{};
-		bool ready_signal{false};
+		// bool ready_signal{false};
 		lfsr_word_t lfsr_v = 1;
 
 		// void show_infos();
@@ -77,7 +77,6 @@ namespace ui
 		// void on_ctcss_changed(uint32_t v);
 		void stop();
 		bool is_active() const;
-		void set_ready();
 		void handle_stream_reader_thread_done(const uint32_t return_code);
 		void file_error();
 		void on_tx_progress(const uint32_t progress);
@@ -145,17 +144,6 @@ namespace ui
 			{
 				const auto message = *reinterpret_cast<const StreamReaderThreadDoneMessage *>(p);
 				this->handle_stream_reader_thread_done(message.return_code);
-			}};
-
-		MessageHandlerRegistration message_handler_fifo_signal{
-			Message::ID::RequestSignal,
-			[this](const Message *const p)
-			{
-				const auto message = static_cast<const RequestSignalMessage *>(p);
-				if (message->signal == RequestSignalMessage::Signal::FillRequest)
-				{
-					this->set_ready();
-				}
 			}};
 
 		MessageHandlerRegistration message_handler_tx_progress{

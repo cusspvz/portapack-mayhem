@@ -302,7 +302,7 @@ namespace ui
 		// TX related
 		std::unique_ptr<StreamReaderThread>
 			stream_reader_thread{};
-		bool ready_signal{false};
+		// bool ready_signal{false};
 		void handle_stream_reader_thread_done(const uint32_t return_code);
 
 		void generate_frame();
@@ -381,18 +381,6 @@ namespace ui
 			{
 				const auto message = *reinterpret_cast<const StreamReaderThreadDoneMessage *>(p);
 				this->handle_stream_reader_thread_done(message.return_code);
-			}};
-
-		// handle FIFO buffer fill requests
-		MessageHandlerRegistration message_handler_fifo_signal{
-			Message::ID::RequestSignal,
-			[this](const Message *const p)
-			{
-				const auto message = static_cast<const RequestSignalMessage *>(p);
-				if (message->signal == RequestSignalMessage::Signal::FillRequest)
-				{
-					this->ready_signal = true;
-				}
 			}};
 
 		// handle tx progress

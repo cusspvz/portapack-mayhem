@@ -36,11 +36,6 @@ using namespace portapack;
 namespace ui
 {
 
-	void GpsSimAppView::set_ready()
-	{
-		ready_signal = true;
-	}
-
 	void GpsSimAppView::on_file_changed(std::filesystem::path new_file_path)
 	{
 		File data_file, info_file;
@@ -154,7 +149,7 @@ namespace ui
 			stream_reader_thread = std::make_unique<StreamReaderThread>(
 				std::move(reader),
 				read_size, buffer_count,
-				&ready_signal,
+				// &ready_signal,
 				[](uint32_t return_code)
 				{
 					StreamReaderThreadDoneMessage message{return_code};
@@ -198,7 +193,7 @@ namespace ui
 			button_play.set_bitmap(&bitmap_play);
 		}
 
-		ready_signal = false;
+		// ready_signal = false;
 	}
 
 	void GpsSimAppView::handle_stream_reader_thread_done(const uint32_t return_code)
