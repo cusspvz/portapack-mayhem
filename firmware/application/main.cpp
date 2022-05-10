@@ -43,8 +43,6 @@
 // BUG: SCANNER Lock on frequency, if frequency jump, still locked on first one
 // BUG: SCANNER Multiple slices
 // GLITCH: The about view scroller sometimes misses lines because of a race condition between the display scrolling and drawing the line
-// GLITCH: Start of tx using StreamReaderThread plays a small bit of previous transmission (content of 1 buffer ?)
-//	See fifo.reset_in() ?
 
 // FIXED: Update button in signal gen doesn't work for shape change
 // BUG: Signal gen noise shape doesn't work
@@ -62,13 +60,11 @@
 // TODO: Open files in File Manager
 // TODO: Ask for filename after record
 // TODO: Super simple text file viewer
-// TODO: Clean up StreamReaderThread
 // TODO: Cap Wav viewer position
 // TODO: Adapt wav viewer position step
 // TODO: Use unit_auto_scale
 // TODO: Remove make_bistream from encoders.cpp, too complex, stinks. bitstream_append should be enough.
 // TODO: Continue work on proc_afskrx_corr, see python script (it works !)
-// TODO: De bruijn sequence scanner for encoders
 // TODO: FILEMAN Move files
 // TODO: Use separate thread for scanning in EPAR TX
 // TODO: Make freqman refresh simpler (use previous black rectangle method)
@@ -102,7 +98,6 @@ Continuous (Fox-oring)
 // Old or low-priority stuff:
 // TODO: Bodet :)
 // TODO: Analog TV tx with camcorder font character generator
-// TODO: Scan for OOK TX
 // TODO: Check more OOK encoders
 // BUG (fixed ?): No audio in about when shown second time
 // TODO: Show MD5 mismatches for modules not found, etc...
@@ -110,6 +105,14 @@ Continuous (Fox-oring)
 // BUG: Description doesn't show up first time going to system>module info (UI drawn on top)
 // TODO: Two players tic-tac-toe
 // TODO: Analog TV pong game
+
+// @cusspvz (Jose Moreira)
+// TODO: Scan for OOK TX
+// TODO: De bruijn sequence scanner for encoders
+// TODO: stream pipelines in between application and baseband
+// TODO: Clean up StreamReaderThread
+// GLITCH: Start of tx using StreamReaderThread plays a small bit of previous transmission (content of 1 buffer ?)
+//	See fifo.reset_in() ?
 
 #include "ch.h"
 

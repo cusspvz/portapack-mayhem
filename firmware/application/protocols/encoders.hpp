@@ -62,6 +62,7 @@ namespace encoders
 	size_t make_bitstream(std::string &fragments);
 	void bitstream_append(size_t &bitstream_length, uint32_t bit_count, uint32_t bits);
 	void generate_frame_fragments(std::vector<bool> *frame_fragments, const encoder_def_t *encoder_def, const uint8_t selected_symbol_indexes[32], const bool reversed);
+	uint32_t get_frame_fragments_size(const encoder_def_t *encoder_def);
 
 	// Warning ! If this is changed, make sure that ENCODER_UM3750 is still valid !
 	constexpr encoder_def_t encoder_defs[ENC_TYPES_COUNT] = {

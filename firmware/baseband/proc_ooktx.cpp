@@ -39,7 +39,38 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 
 	for (size_t i = 0; i < buffer.count; i++)
 	{
-		process();
+		// check what the processor is going to emit next
+		if (configured)
+		{
+
+			// At this point we want to ensure the cur_bit is continuously sampled through the baseband
+			// sampling buffer so we can print a set of sinewaves (also called short-pulse) representing the bit
+			if (!bit_sampling.is_done())
+			{
+				bit_sampling.index++;
+			}
+			else
+			{
+
+				// at this point, we want to transmit a new bit
+				bit_sampling.index = 0;
+
+				// - if the sample is fully consumed or empty, attempt to read from the stream
+				if (bit_cursor.is_last())
+				{
+					//   - if the stream is empty, it means we're done! :yey:
+					if (fill_buffer() == 0)
+						done();
+
+					bit_cursor.index = 0;
+				} else {
+					// - if our internal sample still has bits, gather the next bit
+					bit_cursor.index++;
+				}
+
+				current_bit = bit_buffer[bit_cursor.index];
+			}
+		}
 
 		// Handle the sine wave depending if the current bit is on or off
 		if (current_bit)
@@ -67,63 +98,21 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 	}
 }
 
-void OOKTxProcessor::process()
-{
+uint32_t OOKTxProcessor::fill_buffer() {
+	uint32_t bytes_streamed = 0;
 
-	if (!configured)
+	if (stream)
 	{
-		return;
+		bytes_streamed = stream->read(&bit_buffer, sizeof(bit_buffer));
+		bytes_read += bytes_streamed;
 	}
 
-	// At this point we want to ensure the cur_bit is continuously sampled through the baseband
-	// sampling buffer so we can print a set of sinewaves (also called short-pulse) representing the bit
-	if (!bit_sampling.is_done())
-	{
-		bit_sampling.bump();
-		return;
-	}
-
-	// at this point, we want to transmit a new bit
-	bit_sampling.start_over();
-
-	// at this point we need to either:
-	// - if our internal sample still has bits, gather the next bit
-	if (!bit_cursor.is_done())
-	{
-		bit_cursor.bump();
-
-		// - if the sample is fully consumed or empty, attempt to read from the stream
-	}
-	else
-	{
-		uint32_t bytes_streamed = 0;
-
-		if (stream)
-		{
-			bytes_streamed = stream->read(&bit_buffer, OOK_BYTE_BUFFER_SIZE);
-			bytes_read += bytes_streamed;
-		}
-
-		//   - if the stream is empty, it means we're done! :yey:
-		if (!stream || bytes_streamed == 0)
-		{
-			done();
-			return;
-		}
-
-		bit_cursor.start_over();
-	}
-
-	// set the currently transmitting bit
-	current_bit = bit_buffer[bit_cursor.index];
+	return bytes_streamed;
 }
 
 void OOKTxProcessor::done()
 {
 	// Transmission is now completed
-	bit_sampling.reset();
-	bit_cursor.start_over();
-
 	txprogress_message.progress = bytes_read;
 	txprogress_message.done = true;
 	shared_memory.application_queue.push(txprogress_message);
@@ -142,10 +131,9 @@ void OOKTxProcessor::reset()
 	txprogress_message.progress = 0;
 	txprogress_message.done = false;
 
-	bit_sampling.start_over();
-	bit_cursor.start_over();
-	// bit_cursor.total = 8;
-	bit_cursor.total = OOK_BIT_BUFFER_SIZE;
+	bit_sampling.index = 0;
+	bit_cursor.index = 0;
+	bit_cursor.total = bit_buffer.size();
 }
 
 void OOKTxProcessor::on_message(const Message *const message)
@@ -157,14 +145,14 @@ void OOKTxProcessor::on_message(const Message *const message)
 		break;
 
 	case Message::ID::StreamTransmitConfig:
-		// bytes_read = 0;
-		// configured = false;
-
 		stream_config(*reinterpret_cast<const StreamTransmitConfigMessage *>(message));
 		break;
 
 	// App has prefilled the buffers, we're ready to go now
 	case Message::ID::FIFOData:
+		fill_buffer();
+		bit_sampling.index = 0;
+		bit_cursor.index = 0;
 		configured = true;
 		break;
 
@@ -176,7 +164,6 @@ void OOKTxProcessor::on_message(const Message *const message)
 void OOKTxProcessor::ook_config(const OOKConfigureMessage &message)
 {
 	bit_sampling.total = baseband_fs / (1000000 / message.pulses_per_bit);
-
 	reset();
 };
 void OOKTxProcessor::stream_config(const StreamTransmitConfigMessage &message)

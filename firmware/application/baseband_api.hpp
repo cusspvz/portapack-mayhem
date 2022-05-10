@@ -98,10 +98,10 @@ namespace baseband
 	void spectrum_streaming_stop();
 
 	void set_sample_rate(const uint32_t sample_rate);
-	void capture_start(StreamReceiveConfig *const config);
-	void capture_stop();
-	void replay_start(StreamTransmitConfig *const config);
-	void replay_stop();
+	void stream_receive_start(StreamReceiveConfig *const config);
+	void stream_receive_stop();
+	void stream_transmit_start(StreamTransmitConfig *const config);
+	void stream_transmit_stop();
 
 } /* namespace baseband */
 

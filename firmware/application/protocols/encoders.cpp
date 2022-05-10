@@ -91,14 +91,31 @@ namespace encoders
 		bitstream[bitstream_length >> 3] = byte;
 	}
 
+
+	uint32_t get_frame_fragments_size(const encoder_def_t *encoder_def){
+		uint32_t size = 0;
+
+		for (uint8_t i = 0; i < encoder_def->word_length; i++)
+			if (encoder_def->word_format[i] == 'S')
+				size += encoder_def->sync_bit_length;
+			else
+				size += encoder_def->bit_fragments_length_per_symbol;
+
+		return size;
+	}
+
 	void generate_frame_fragments(std::vector<bool> *frame_fragments, const encoder_def_t *encoder_def, const uint8_t selected_symbol_indexes[32], const bool reversed)
 	{
 		frame_fragments->clear();
+
+		// set ahead the max_size
+		frame_fragments->reserve(get_frame_fragments_size(encoder_def));
 
 		for (uint8_t i = 0; i < encoder_def->word_length; i++)
 		{
 			if (encoder_def->word_format[i] == 'S')
 			{
+
 				for (uint8_t i = 0; i < encoder_def->sync_bit_length; i++)
 				{
 					frame_fragments->insert(frame_fragments->end(), 1, encoder_def->sync_bit_fragment[i]);

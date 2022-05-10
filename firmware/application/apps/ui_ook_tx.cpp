@@ -732,6 +732,7 @@ namespace ui
 			case TX_MODE_MANUAL:
 			case TX_MODE_BRUTEFORCE:
 				auto ook_encoder_reader_p = std::make_unique<OOKEncoderReader>();
+				ook_encoder_reader_p->reset();
 
 				ook_encoder_reader_p->frame_fragments = &frame_fragments;
 				ook_encoder_reader_p->pauses_cursor.total = view_generator.field_pause_between_frames.value();
@@ -810,20 +811,12 @@ namespace ui
 			return;
 		}
 
-		const size_t read_size = 1024;
-		const size_t buffer_count = 2;
-
 		baseband::set_ook_data(pulses_per_bit);
 
 		stream_reader_thread = std::make_unique<StreamReaderThread>(
 			std::move(reader),
-			read_size, buffer_count,
-			// &ready_signal,
-			[this](uint32_t return_code)
-			{
-				StreamReaderThreadDoneMessage message{return_code};
-				EventDispatcher::send_message(message);
-			});
+			read_size, buffer_count
+		);
 
 		tx_view.set_transmitting(true);
 		transmitter_model.enable();
@@ -846,7 +839,6 @@ namespace ui
 		tx_mode = TX_MODE_IDLE;
 		tx_view.set_transmitting(false);
 		view_generator.symfield_word.set_focusable(true);
-		// ready_signal = false;
 
 		progress_reset();
 		// generate_frame();

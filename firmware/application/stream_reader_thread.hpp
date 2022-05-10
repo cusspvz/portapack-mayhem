@@ -40,8 +40,8 @@ public:
 	StreamReaderThread(
 		std::unique_ptr<stream::Reader> reader,
 		size_t read_size,
-		size_t buffer_count,
-		std::function<void(uint32_t return_code)> terminate_callback);
+		size_t buffer_count
+	);
 	~StreamReaderThread();
 
 	StreamReaderThread(const StreamReaderThread &) = delete;

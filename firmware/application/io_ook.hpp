@@ -51,6 +51,7 @@ public:
 	uint64_t length();
 
 	std::vector<bool> *frame_fragments{};
+	bool last_bit;
 	void reset();
 
 	cursor pauses_cursor{0};
@@ -61,5 +62,6 @@ protected:
 	uint64_t bytes_read{0};
 
 private:
+	void change_read_type(OOKEncoderReaderReadType rt);
 	OOKEncoderReaderReadType read_type = OOK_READER_READING_FRAGMENT;
 };

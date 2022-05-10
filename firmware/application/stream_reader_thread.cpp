@@ -29,12 +29,12 @@ struct BasebandTransmit
 {
 	BasebandTransmit(StreamTransmitConfig *const config)
 	{
-		baseband::replay_start(config);
+		baseband::stream_transmit_start(config);
 	}
 
 	~BasebandTransmit()
 	{
-		baseband::replay_stop();
+		baseband::stream_transmit_stop();
 	}
 };
 
@@ -43,11 +43,14 @@ struct BasebandTransmit
 StreamReaderThread::StreamReaderThread(
 	std::unique_ptr<stream::Reader> reader,
 	size_t read_size,
-	size_t buffer_count,
-	std::function<void(uint32_t return_code)> terminate_callback) : config{read_size, buffer_count},
-																	reader{std::move(reader)},
-																	terminate_callback{std::move(terminate_callback)}
+	size_t buffer_count) : config{read_size, buffer_count}, reader{std::move(reader)}
 {
+	terminate_callback = std::move([](uint32_t return_code)
+	{
+		StreamReaderThreadDoneMessage message{return_code};
+		EventDispatcher::send_message(message);
+	});
+
 	// Need significant stack for FATFS
 	thread = chThdCreateFromHeap(NULL, 1024, NORMALPRIO + 10, StreamReaderThread::static_fn, this);
 }
@@ -83,8 +86,6 @@ uint32_t StreamReaderThread::run()
 	StreamBuffer *prefill_buffer{nullptr};
 
 	// Wait for FIFOs to be allocated in baseband
-	// Wait for ui_replay_view to tell us that the buffers are ready (awful :( )
-	// Edit: moved the signaling ownership to this class
 	while (!ready_sig)
 	{
 		chThdSleep(100);

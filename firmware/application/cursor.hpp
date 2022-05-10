@@ -43,7 +43,7 @@ public:
 
     bool is_last()
     {
-        return index == (total - 1);
+        return index == (total - 1) || index >= total;
     }
 
     bool is_done()

@@ -302,8 +302,10 @@ namespace ui
 		// TX related
 		std::unique_ptr<StreamReaderThread>
 			stream_reader_thread{};
-		// bool ready_signal{false};
 		void handle_stream_reader_thread_done(const uint32_t return_code);
+		const size_t read_size{2048};
+		// const size_t read_size{16384};
+		const size_t buffer_count{3};
 
 		void generate_frame();
 		void progress_reset();

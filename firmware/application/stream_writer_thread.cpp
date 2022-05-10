@@ -28,12 +28,12 @@ struct BasebandReceive
 {
 	BasebandReceive(StreamReceiveConfig *const config)
 	{
-		baseband::capture_start(config);
+		baseband::stream_receive_start(config);
 	}
 
 	~BasebandReceive()
 	{
-		baseband::capture_stop();
+		baseband::stream_receive_stop();
 	}
 };
 

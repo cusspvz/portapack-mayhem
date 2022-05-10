@@ -148,13 +148,8 @@ namespace ui
 
 			stream_reader_thread = std::make_unique<StreamReaderThread>(
 				std::move(reader),
-				read_size, buffer_count,
-				// &ready_signal,
-				[](uint32_t return_code)
-				{
-					StreamReaderThreadDoneMessage message{return_code};
-					EventDispatcher::send_message(message);
-				});
+				read_size, buffer_count
+			);
 		}
 		field_rfgain.on_change = [this](int32_t v)
 		{
@@ -193,7 +188,6 @@ namespace ui
 			button_play.set_bitmap(&bitmap_play);
 		}
 
-		// ready_signal = false;
 	}
 
 	void GpsSimAppView::handle_stream_reader_thread_done(const uint32_t return_code)

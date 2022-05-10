@@ -32,20 +32,20 @@
 #include <array>
 #include <memory>
 
-const uint8_t OOK_BIT_BUFFER_SIZE = 32;
-const uint8_t OOK_BYTE_BUFFER_SIZE = OOK_BIT_BUFFER_SIZE / 8;
+const uint8_t OOK_BIT_BUFFER_SIZE = 128;
 
 class OOKTxProcessor : public BasebandProcessor
 {
 public:
 	void execute(const buffer_c8_t &buffer) override;
 	void reset();
-	void process();
+	uint32_t fill_buffer();
 	void done();
 
 	void on_message(const Message *const message) override;
 
 private:
+	// static constexpr size_t baseband_fs = 4560000; // sample rate
 	static constexpr size_t baseband_fs = 2280000; // sample rate
 
 	BasebandThread baseband_thread{baseband_fs, this, NORMALPRIO + 20, baseband::Direction::Transmit};
@@ -56,7 +56,6 @@ private:
 	// streaming approach
 	uint32_t bytes_read{0};
 	std::unique_ptr<StreamOutput> stream{};
-	// uint8_t bit_buffer;
 	std::bitset<OOK_BIT_BUFFER_SIZE> bit_buffer;
 	cursor bit_cursor{};
 	bool current_bit = false;

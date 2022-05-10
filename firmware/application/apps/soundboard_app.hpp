@@ -69,7 +69,6 @@ namespace ui
 		const size_t read_size{2048}; // Less ?
 		const size_t buffer_count{3};
 		std::unique_ptr<StreamReaderThread> stream_reader_thread{};
-		// bool ready_signal{false};
 		lfsr_word_t lfsr_v = 1;
 
 		// void show_infos();

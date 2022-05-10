@@ -311,7 +311,7 @@ namespace baseband
 		}
 
 		creg::m4txevent::disable();
-
+ 
 		ShutdownMessage message;
 		send_message(&message);
 
@@ -340,25 +340,25 @@ namespace baseband
 		send_message(&message);
 	}
 
-	void capture_start(StreamReceiveConfig *const config)
+	void stream_receive_start(StreamReceiveConfig *const config)
 	{
 		StreamReceiveConfigMessage message{config};
 		send_message(&message);
 	}
 
-	void capture_stop()
+	void stream_receive_stop()
 	{
 		StreamReceiveConfigMessage message{nullptr};
 		send_message(&message);
 	}
 
-	void replay_start(StreamTransmitConfig *const config)
+	void stream_transmit_start(StreamTransmitConfig *const config)
 	{
 		StreamTransmitConfigMessage message{config};
 		send_message(&message);
 	}
 
-	void replay_stop()
+	void stream_transmit_stop()
 	{
 		StreamTransmitConfigMessage message{nullptr};
 		send_message(&message);

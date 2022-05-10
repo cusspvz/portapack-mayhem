@@ -77,7 +77,6 @@ namespace ui
 
 		std::filesystem::path file_path{};
 		std::unique_ptr<StreamReaderThread> stream_reader_thread{};
-		// bool ready_signal{false};
 
 		Labels labels{
 			{{10 * 8, 2 * 16}, "GAIN   A:", Color::light_grey()}};
