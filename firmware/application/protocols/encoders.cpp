@@ -91,8 +91,8 @@ namespace encoders
 		bitstream[bitstream_length >> 3] = byte;
 	}
 
-
-	uint32_t get_frame_fragments_size(const encoder_def_t *encoder_def){
+	uint32_t get_frame_fragments_size(const encoder_def_t *encoder_def)
+	{
 		uint32_t size = 0;
 
 		for (uint8_t i = 0; i < encoder_def->word_length; i++)
@@ -117,9 +117,7 @@ namespace encoders
 			{
 
 				for (uint8_t i = 0; i < encoder_def->sync_bit_length; i++)
-				{
-					frame_fragments->insert(frame_fragments->end(), 1, encoder_def->sync_bit_fragment[i]);
-				}
+					frame_fragments->push_back(encoder_def->sync_bit_fragment[i]);
 			}
 			else
 			{
@@ -127,9 +125,7 @@ namespace encoders
 				auto symbol_bits = encoder_def->symbols_bit_fragments[reversed ? (index == 0 ? 1 : 0) : index];
 
 				for (uint8_t i = 0; i < encoder_def->bit_fragments_length_per_symbol; i++)
-				{
-					frame_fragments->insert(frame_fragments->end(), 1, symbol_bits[i]);
-				}
+					frame_fragments->push_back(symbol_bits[i]);
 			}
 		}
 	};

@@ -254,7 +254,7 @@ namespace ui
 		};
 
 		OptionsField options_shorter_pulse_period{
-			{23 * 8, 4 * 8},
+			{23 * 8, 0 * 8},
 			5,
 			PERIODS_PER_SYMBOL,
 		};

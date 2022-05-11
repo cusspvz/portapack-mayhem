@@ -29,8 +29,11 @@ DeBruijnSequencer::DeBruijnSequencer(const uint8_t wordlength)
 {
 	init(wordlength);
 
+	// TODO: this shouldnt be here, but on a thread instead. just using for testing purposes
+	db(1, 1);
+
 	// Need significant stack for FATFS
-	thread = chThdCreateFromHeap(NULL, 256, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
+	// thread = chThdCreateFromHeap(NULL, 512, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
 };
 
 DeBruijnSequencer::~DeBruijnSequencer()
@@ -78,7 +81,7 @@ void DeBruijnSequencer::reset()
 msg_t DeBruijnSequencer::static_fn(void *arg)
 {
 	auto sequencer = static_cast<DeBruijnSequencer *>(arg);
-	sequencer->db(1, 1);
+	// sequencer->db(1, 1);
 
 	// TODO: analyse whats the best way to achieve this on a streamed approach
 	// for (uint8_t i = 0, nremain = n - 1; nremain > 0; i += 2, nremain--)
@@ -92,11 +95,11 @@ void DeBruijnSequencer::db(uint8_t t, uint8_t p)
 	if (chThdShouldTerminate())
 		return;
 
-	// if we've reached our target size, lets wait a bit until it gets consumed
-	while (sequence.size() >= sequence_target_fill)
-	{
-		chThdSleep(100);
-	};
+	// // if we've reached our target size, lets wait a bit until it gets consumed
+	// while (sequence.size() >= sequence_target_fill)
+	// {
+	// 	chThdSleep(1000);
+	// };
 
 	if (t > n)
 	{

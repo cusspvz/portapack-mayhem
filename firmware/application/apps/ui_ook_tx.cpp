@@ -611,10 +611,11 @@ namespace ui
 			generate_frame_fragments(&frame_fragments, view_generator.encoder_def, selected_symbol_indexes, checkbox_reversed.value());
 		}
 
-		// if (tab_view.selected() == 2)
-		// 	frame_fragments += view_debruijn.generate_frame(
-		// 		frame_parts_cursor.index,
-		// 		checkbox_reversed.value());
+		if (tab_view.selected() == 2)
+		{
+			frame_fragments.clear();
+			// frame_fragments.insert(frame_fragments.begin(), sequencer.sequence.begin(), sequencer.sequence.end());
+		}
 	}
 
 	void
@@ -759,12 +760,22 @@ namespace ui
 		// DeBruijn View TX
 		if (tab_view.selected() == 2)
 		{
-			tx_mode = TX_MODE_DEBRUIJN;
-
 			// TODO: disable access to all inputs
 
 			pulses_per_bit = view_debruijn.options_shorter_pulse_period.selected_index_value();
-			// TODO: reader
+			tx_mode = TX_MODE_DEBRUIJN;
+
+			// reader
+			auto ook_encoder_reader_p = std::make_unique<OOKEncoderReader>();
+			ook_encoder_reader_p->reset();
+
+			ook_encoder_reader_p->frame_fragments = &sequencer.sequence;
+			ook_encoder_reader_p->pauses_cursor.total = 0;
+			ook_encoder_reader_p->repetitions_cursor.total = 1;
+
+			ook_encoder_reader_p->reset();
+
+			tx(std::move(ook_encoder_reader_p), pulses_per_bit);
 		}
 	}
 
