@@ -24,9 +24,9 @@
 #include "ui.hpp"
 #include "ui_tabview.hpp"
 #include "ui_transmitter.hpp"
+#include "de_bruijn_cusspvz.hpp"
 #include "transmitter_model.hpp"
 #include "encoders.hpp"
-#include "de_bruijn_cusspvz.hpp"
 #include "io_file.hpp"
 #include "io_ook.hpp"
 #include "stream_reader_thread.hpp"
@@ -107,9 +107,6 @@ namespace ui
 		const encoder_def_t *encoder_def{};
 		void reset_symfield();
 		void check_if_encoder_is_vuln_to_debruijn();
-
-		de_bruijn debruijn_sequencer{};
-		void reset_debruijn();
 
 		// UI related
 
@@ -222,12 +219,10 @@ namespace ui
 		OOKTxDeBruijnView(NavigationView &nav, Rect parent_rect);
 		void focus() override;
 
-		void reset_debruijn();
 		void reset_symfield();
 
 		// private:
-		de_bruijn debruijn_sequencer{};
-		std::string symfield_symbols = "01";
+		const std::string symfield_symbols = "01";
 
 		// UI related
 		Labels labels{
@@ -322,6 +317,7 @@ namespace ui
 		tx_modes tx_mode = TX_MODE_IDLE;
 		cursor bruteforce_cursor{};
 
+		DeBruijnSequencer sequencer{8};
 		std::vector<bool> frame_fragments{};
 
 		// UI related

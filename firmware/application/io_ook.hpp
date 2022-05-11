@@ -19,6 +19,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
+#include "de_bruijn_cusspvz.hpp"
 #include "encoders.hpp"
 #include "io.hpp"
 #include "cursor.hpp"
@@ -35,6 +36,13 @@ enum OOKEncoderReaderReadType
 	OOK_READER_READING_PAUSES = 2,
 };
 
+enum OOKDebruijnReaderReadType
+{
+	OOK_DEBRUIJN_COMPLETED = 0,
+	OOK_DEBRUIJN_READING_BIT = 1,
+	OOK_DEBRUIJN_READING_FRAGMENT = 2,
+};
+
 class OOKEncoderReader : public stream::Reader
 {
 public:
@@ -47,13 +55,13 @@ public:
 	OOKEncoderReader &operator=(const OOKEncoderReader &) = delete;
 	OOKEncoderReader &operator=(OOKEncoderReader &&) = delete;
 
-	Result<uint64_t, Error> read(void *const buffer, const uint64_t bytes) override;
+	Result<uint64_t, Error> read(void *const buffer, const uint64_t bsize) override;
 	uint64_t length();
-
-	std::vector<bool> *frame_fragments{};
-	bool last_bit;
 	void reset();
 
+	std::vector<bool> *frame_fragments{};
+
+	bool completition_requires_pause = false;
 	cursor pauses_cursor{0};
 	cursor repetitions_cursor{1};
 	cursor fragments_cursor{1};
@@ -64,4 +72,29 @@ protected:
 private:
 	void change_read_type(OOKEncoderReaderReadType rt);
 	OOKEncoderReaderReadType read_type = OOK_READER_READING_FRAGMENT;
+};
+
+class OOKDebruijnReader : public stream::Reader
+{
+public:
+	OOKDebruijnReader() = default;
+
+	OOKDebruijnReader(const OOKDebruijnReader &) = delete;
+	OOKDebruijnReader &operator=(const OOKDebruijnReader &) = delete;
+	OOKDebruijnReader &operator=(OOKDebruijnReader &&) = delete;
+
+	Result<uint64_t, Error> read(void *const buffer, const uint64_t bsize) override;
+	uint64_t length();
+	void reset();
+
+	bool cur_bit = false;
+	std::vector<bool> *on_frame_fragments{};
+	std::vector<bool> *off_frame_fragments{};
+	DeBruijnSequencer *sequencer{};
+
+	cursor fragments_cursor{1};
+
+private:
+	void change_read_type(OOKDebruijnReaderReadType rt);
+	OOKDebruijnReaderReadType read_type = OOK_DEBRUIJN_READING_BIT;
 };

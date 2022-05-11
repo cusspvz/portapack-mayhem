@@ -23,41 +23,86 @@
 #include "de_bruijn_cusspvz.hpp"
 #include <math.h> /* pow */
 
-void de_bruijn::init(std::string alphabet_str, uint8_t wordlength, uint8_t bytes_per_part)
+// DeBruijnSequencer ///////////////////////////////////////////////////////////
+
+DeBruijnSequencer::DeBruijnSequencer(const uint8_t wordlength)
 {
-	alphabet = alphabet_str;
-	k = alphabet_str.length();
-	n = wordlength;
-	_bytes_per_part = bytes_per_part;
+	init(wordlength);
 
-	// calculate new length
-	length = pow(k, n) + (n - 1);
+	// Need significant stack for FATFS
+	thread = chThdCreateFromHeap(NULL, 256, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
+};
 
-	// calculate the number of parts
-	std::div_t tmp = div(length, bytes_per_part);
-	_total_parts = tmp.quot + ((tmp.rem > 0) ? 1 : 0);
+DeBruijnSequencer::~DeBruijnSequencer()
+{
+	_ended = true;
 
-	reset();
+	if (thread)
+	{
+		chThdTerminate(thread);
+		chThdWait(thread);
+		thread = nullptr;
+	}
 }
 
-void de_bruijn::reset()
+size_t DeBruijnSequencer::length()
+{
+	return _length;
+};
+bool DeBruijnSequencer::ended()
+{
+	return _ended;
+};
+
+size_t DeBruijnSequencer::init(uint8_t wordlength)
+{
+	n = wordlength;
+
+	// calculate new length
+	_length = pow(k, n) + (n - 1);
+	reset();
+
+	return _length;
+};
+
+void DeBruijnSequencer::reset()
 {
 	// fill the var `a` with 0s
 	for (uint8_t i = 1; i <= sizeof(a); i++)
+		a[i] = false;
+
+	_ended = false;
+	sequence.clear();
+};
+
+msg_t DeBruijnSequencer::static_fn(void *arg)
+{
+	auto sequencer = static_cast<DeBruijnSequencer *>(arg);
+	sequencer->db(1, 1);
+
+	// TODO: analyse whats the best way to achieve this on a streamed approach
+	// for (uint8_t i = 0, nremain = n - 1; nremain > 0; i += 2, nremain--)
+	// 	sequence.push_back(sequence[i % sequence.length()]);
+
+	return 0;
+};
+
+void DeBruijnSequencer::db(uint8_t t, uint8_t p)
+{
+	if (chThdShouldTerminate())
+		return;
+
+	// if we've reached our target size, lets wait a bit until it gets consumed
+	while (sequence.size() >= sequence_target_fill)
 	{
-		a[i] = 0;
+		chThdSleep(100);
 	};
 
-	sequence.clear();
-}
-
-void de_bruijn::db(uint8_t t, uint8_t p)
-{
 	if (t > n)
 	{
 		if (n % p == 0)
 			for (uint32_t j = 1; j <= p; j++)
-				sequence += alphabet[a[j]];
+				sequence.push_back(a[j]);
 
 		return;
 	}
@@ -69,28 +114,14 @@ void de_bruijn::db(uint8_t t, uint8_t p)
 		a[t] = j;
 		db(t + 1, t);
 	}
-}
+};
 
-void de_bruijn::generate()
+bool DeBruijnSequencer::read_bit()
 {
-	db(1, 1);
+	bool cur_bit = sequence[0];
 
-	for (uint8_t i = 0, nremain = n - 1; nremain > 0; i += 2, nremain--)
-		sequence += sequence[i % sequence.length()];
-}
+	// delete from the sequence
+	sequence.erase(sequence.begin());
 
-uint32_t de_bruijn::get_total_parts()
-{
-	return _total_parts;
-}
-
-std::string de_bruijn::get_part(uint32_t part_index)
-{
-	if (part_index >= _total_parts)
-	{
-		return "";
-	}
-
-	uint32_t offset = part_index * _bytes_per_part;
-	return sequence.substr(offset, ((offset + _bytes_per_part) > length) ? length - offset : _bytes_per_part);
-}
+	return cur_bit;
+};

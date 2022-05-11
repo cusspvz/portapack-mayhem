@@ -75,7 +75,7 @@ namespace ui
 			// reset the debruijn sequencer in case the encoder is vulnerable
 			if (encoder_def->sync_bit_length == 0)
 			{
-				reset_debruijn();
+				// reset_debruijn();
 			}
 
 			if (on_encoder_change)
@@ -166,21 +166,6 @@ namespace ui
 		format_string.append(24 - format_string.size(), ' ');
 
 		text_format.set(format_string);
-	}
-
-	void OOKTxGeneratorView::reset_debruijn()
-	{
-		if (
-			debruijn_sequencer.k == 2 &&
-			debruijn_sequencer.n == encoder_def->word_length &&
-			debruijn_sequencer.sequence.length() > 0)
-			return;
-
-		debruijn_sequencer.init("01", encoder_def->word_length, 32);
-
-		// TODO: we need to stream the debruijn sequence instead of generating it all at once!
-		// disabled in the encoder view as it just screws up on 16bits
-		// debruijn_sequencer.generate();
 	}
 
 	// const char *OOKTxGeneratorView::get_symbols_bit_fragments(const uint8_t index, const bool reversed)
@@ -389,7 +374,7 @@ namespace ui
 
 		field_wordlength.on_change = [this](uint32_t)
 		{
-			reset_debruijn();
+			// reset_debruijn();
 
 			if (on_waveform_change_request)
 				on_waveform_change_request();
@@ -442,22 +427,6 @@ namespace ui
 			symfield_fragment_0.set_symbol_list(i, symfield_symbols);
 			symfield_fragment_1.set_symbol_list(i, symfield_symbols);
 		}
-	}
-
-	void OOKTxDeBruijnView::reset_debruijn()
-	{
-		uint32_t word_length = field_wordlength.value();
-
-		if (
-			debruijn_sequencer.k == 2 &&
-			debruijn_sequencer.n == word_length &&
-			debruijn_sequencer.sequence.length() > 0)
-			return;
-
-		debruijn_sequencer.init(symfield_symbols, word_length, 32);
-
-		// TODO: we need to stream the debruijn sequence instead of generating it all at once!
-		debruijn_sequencer.generate();
 	}
 
 	// uint32_t OOKTxDeBruijnView::get_repeat_total() { return 1; }
@@ -760,12 +729,11 @@ namespace ui
 						if (this->bruteforce_cursor.is_done())
 							return;
 
+						this->bruteforce_cursor.bump();
 						this->view_generator.symfield_word.set_next_possibility();
 						generate_frame();
 
 						reader.frame_fragments = &this->frame_fragments;
-
-						this->bruteforce_cursor.bump();
 						reader.reset();
 
 						// trigger waveform redraw
@@ -792,7 +760,6 @@ namespace ui
 		if (tab_view.selected() == 2)
 		{
 			tx_mode = TX_MODE_DEBRUIJN;
-			view_debruijn.reset_debruijn();
 
 			// TODO: disable access to all inputs
 
@@ -815,8 +782,7 @@ namespace ui
 
 		stream_reader_thread = std::make_unique<StreamReaderThread>(
 			std::move(reader),
-			read_size, buffer_count
-		);
+			read_size, buffer_count);
 
 		tx_view.set_transmitting(true);
 		transmitter_model.enable();

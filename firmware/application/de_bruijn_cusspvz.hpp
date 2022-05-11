@@ -19,37 +19,45 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include <string>
+#include <vector>
+#include <stdint.h>
+#include "ch.h"
 
 #ifndef __DE_BRUIJN_H__
 #define __DE_BRUIJN_H__
 
-class de_bruijn
+class DeBruijnSequencer
 {
 public:
-	void init(const std::string alphabet_str, const uint8_t wordlength, const uint8_t bytes_per_part);
+	DeBruijnSequencer(const uint8_t wordlength);
+	~DeBruijnSequencer();
+
+	DeBruijnSequencer(const DeBruijnSequencer &) = delete;
+	DeBruijnSequencer(DeBruijnSequencer &&) = delete;
+	DeBruijnSequencer &operator=(const DeBruijnSequencer &) = delete;
+	DeBruijnSequencer &operator=(DeBruijnSequencer &&) = delete;
+
+	size_t init(const uint8_t wordlength);
 	void reset();
-	void db(uint8_t t, uint8_t p);
-	void generate();
+	bool read_bit();
 
-	std::string alphabet{""};
-	std::string sequence{""};
-	uint32_t length{0};
+	bool ended();
+	size_t length();
 
-	uint8_t k = 2; // radix
-	uint8_t n = 8; // data length
-
-	// parts related - might be useful to distribute the computing
-	// into a stream later down the road
-	std::string
-	get_part(uint32_t part_index);
-	uint32_t get_total_parts();
+	const uint8_t sequence_target_fill = 128;
 
 private:
-	void feed_sequence();
-	uint8_t a[101] = {};
-	uint32_t _total_parts{0};
-	uint8_t _bytes_per_part{0};
+	bool _ended = false;
+	size_t _length{0};
+	const uint8_t k = 2; // radix
+	uint8_t n = 8;		 // data length
+	std::vector<bool> sequence;
+	Thread *thread{nullptr};
+
+	void db(uint8_t t, uint8_t p);
+	bool a[101] = {};
+
+	static msg_t static_fn(void *arg);
 };
 
 #endif /*__DE_BRUIJN_H__*/
