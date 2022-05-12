@@ -649,10 +649,10 @@ namespace ui
 		void set_next_possibility();
 		uint32_t get_possibility();
 		uint32_t get_possibilities_count();
-		uint32_t
-		value_dec_u32();
+		uint32_t value_dec_u32();
 		uint64_t value_hex_u64();
 		std::string value_string();
+		std::vector<bool> value_bool_vector();
 
 		void paint(Painter &painter) override;
 

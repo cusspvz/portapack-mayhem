@@ -40,25 +40,32 @@ public:
 	size_t init(const uint8_t wordlength);
 	void reset();
 	bool read_bit();
+	size_t bits_read{0};
+	bool consumed();
 
-	bool ended();
+	bool thread_ended();
 	size_t length();
 
-	const uint8_t sequence_target_fill = 128;
+	const uint8_t sequence_target_fill = 64;
+	std::vector<bool> initial_sequence_cache;
 
-	std::vector<bool> sequence;
-
-private:
-	bool _ended = false;
-	size_t _length{0};
 	const uint8_t k = 2; // radix
 	uint8_t n = 8;		 // data length
+
+private:
+	uint32_t _generated_length;
+	std::vector<bool> _seq_buffer;
+	size_t _length{0};
 	Thread *thread{nullptr};
 
 	void db(uint8_t t, uint8_t p);
 	bool a[101] = {};
 
+	bool stop_thread();
 	static msg_t static_fn(void *arg);
+
+	void run();
+	bool flow_control();
 };
 
 #endif /*__DE_BRUIJN_H__*/

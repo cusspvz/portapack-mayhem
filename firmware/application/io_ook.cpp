@@ -22,14 +22,14 @@
 #include "io_ook.hpp"
 #include <bitset>
 
-// OOKEncoderReader
+// OOKFrameReader
 
-uint64_t OOKEncoderReader::length()
+uint64_t OOKFrameReader::length()
 {
 	return ((frame_fragments->size() * repetitions_cursor.total) + (pauses_cursor.total * (repetitions_cursor.total - 1))) / 8;
 };
 
-void OOKEncoderReader::reset()
+void OOKFrameReader::reset()
 {
 	bytes_read = 0;
 
@@ -43,7 +43,7 @@ void OOKEncoderReader::reset()
 	read_type = OOK_READER_READING_FRAGMENT;
 }
 
-void OOKEncoderReader::change_read_type(OOKEncoderReaderReadType rt)
+void OOKFrameReader::change_read_type(OOKFrameReaderReadType rt)
 {
 
 	// At this point we'll evaluate if we've completed or not
@@ -72,7 +72,7 @@ void OOKEncoderReader::change_read_type(OOKEncoderReaderReadType rt)
 	read_type = rt;
 };
 
-Result<uint64_t, Error> OOKEncoderReader::read(void *const buffer, const uint64_t bsize)
+Result<uint64_t, Error> OOKFrameReader::read(void *const buffer, const uint64_t bsize)
 {
 	uint64_t bread = 0;
 	std::bitset<32> *rbuff = (std::bitset<32> *)buffer;
@@ -131,17 +131,15 @@ Result<uint64_t, Error> OOKEncoderReader::read(void *const buffer, const uint64_
 
 // OOKDebruijnReader
 
-uint64_t OOKDebruijnReader::length(){
-
+uint64_t OOKDebruijnReader::length()
+{
+	return sequencer->length() * fragments_cursor.total;
 };
 
 void OOKDebruijnReader::reset()
 {
+	fragments_cursor.total = on_symbol_fragments->size();
 	fragments_cursor.start_over();
-};
-
-void OOKDebruijnReader::change_read_type(OOKDebruijnReaderReadType rt){
-
 };
 
 Result<uint64_t, Error> OOKDebruijnReader::read(void *const buffer, const uint64_t bsize)
@@ -161,23 +159,28 @@ Result<uint64_t, Error> OOKDebruijnReader::read(void *const buffer, const uint64
 				if (read_type == OOK_DEBRUIJN_READING_BIT)
 				{
 					// read bit from the debruijn thread and switch to the correct read type
-					cur_bit = sequencer->read_bit();
+					cur_bit = !cur_bit;
+					// cur_bit = sequencer->read_bit();
 
 					fragments_cursor.start_over();
+					read_type = OOK_DEBRUIJN_READING_SYMBOL_FRAGMENT;
 				}
 
-				if (read_type == OOK_DEBRUIJN_READING_FRAGMENT)
+				if (read_type == OOK_DEBRUIJN_READING_SYMBOL_FRAGMENT)
 				{
 					// read from the on fragments
-					rbuff[rbi].set(bit, (cur_bit ? on_frame_fragments->at(fragments_cursor.index) : off_frame_fragments->at(fragments_cursor.index)));
+					rbuff[rbi].set(bit,
+								   cur_bit
+								   // (cur_bit ? on_symbol_fragments->at(fragments_cursor.index) : off_symbol_fragments->at(fragments_cursor.index))
+					);
 
 					// if we've reached the end of the fragment
-					fragments_cursor.bump();
+					fragments_cursor.index++;
 
 					if (fragments_cursor.is_done())
 					{
 						// TODO in case the debruijn is complete, lets wrap it up, otherwise, read next bit
-						read_type = sequencer->ended() ? OOK_DEBRUIJN_COMPLETED : OOK_DEBRUIJN_READING_BIT;
+						read_type = sequencer->consumed() ? OOK_DEBRUIJN_COMPLETED : OOK_DEBRUIJN_READING_BIT;
 					}
 				}
 			}

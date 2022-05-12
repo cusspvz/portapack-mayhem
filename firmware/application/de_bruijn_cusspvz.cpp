@@ -27,34 +27,31 @@
 
 DeBruijnSequencer::DeBruijnSequencer(const uint8_t wordlength)
 {
+	// reserve memory
+	initial_sequence_cache.reserve(sequence_target_fill);
+	_seq_buffer.reserve(sequence_target_fill);
+
 	init(wordlength);
-
-	// TODO: this shouldnt be here, but on a thread instead. just using for testing purposes
-	db(1, 1);
-
-	// Need significant stack for FATFS
-	// thread = chThdCreateFromHeap(NULL, 512, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
 };
 
 DeBruijnSequencer::~DeBruijnSequencer()
 {
-	_ended = true;
-
-	if (thread)
-	{
-		chThdTerminate(thread);
-		chThdWait(thread);
-		thread = nullptr;
-	}
+	stop_thread();
 }
 
 size_t DeBruijnSequencer::length()
 {
 	return _length;
 };
-bool DeBruijnSequencer::ended()
+
+bool DeBruijnSequencer::consumed()
 {
-	return _ended;
+	return thread_ended() && _seq_buffer.size() == 0;
+}
+
+bool DeBruijnSequencer::thread_ended()
+{
+	return _generated_length >= _length;
 };
 
 size_t DeBruijnSequencer::init(uint8_t wordlength)
@@ -65,6 +62,13 @@ size_t DeBruijnSequencer::init(uint8_t wordlength)
 	_length = pow(k, n) + (n - 1);
 	reset();
 
+	stop_thread();
+
+	// TODO: this shouldnt be here, but on a thread instead. just using for testing purposes
+	// db(1, 1);
+
+	thread = chThdCreateFromHeap(NULL, 2048, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
+
 	return _length;
 };
 
@@ -74,57 +78,101 @@ void DeBruijnSequencer::reset()
 	for (uint8_t i = 1; i <= sizeof(a); i++)
 		a[i] = false;
 
-	_ended = false;
-	sequence.clear();
+	_seq_buffer.clear();
+	initial_sequence_cache.clear();
 };
+
+bool DeBruijnSequencer::stop_thread()
+{
+	if (!thread)
+		return false;
+
+	chThdTerminate(thread);
+	chThdWait(thread);
+	thread = nullptr;
+
+	return true;
+}
 
 msg_t DeBruijnSequencer::static_fn(void *arg)
 {
-	auto sequencer = static_cast<DeBruijnSequencer *>(arg);
-	// sequencer->db(1, 1);
-
-	// TODO: analyse whats the best way to achieve this on a streamed approach
-	// for (uint8_t i = 0, nremain = n - 1; nremain > 0; i += 2, nremain--)
-	// 	sequence.push_back(sequence[i % sequence.length()]);
-
+	DeBruijnSequencer *seq = static_cast<DeBruijnSequencer *>(arg);
+	seq->run();
 	return 0;
 };
 
+void DeBruijnSequencer::run()
+{
+	db(1, 1);
+
+	if (chThdShouldTerminate())
+	{
+
+		for (uint8_t i = 0, nremain = n - 1; nremain > 0; i += 2, nremain--)
+		{
+			_seq_buffer.push_back(initial_sequence_cache[i % _generated_length]);
+			_generated_length++;
+		}
+	}
+}
+
 void DeBruijnSequencer::db(uint8_t t, uint8_t p)
 {
-	if (chThdShouldTerminate())
+	if (flow_control())
 		return;
-
-	// // if we've reached our target size, lets wait a bit until it gets consumed
-	// while (sequence.size() >= sequence_target_fill)
-	// {
-	// 	chThdSleep(1000);
-	// };
 
 	if (t > n)
 	{
 		if (n % p == 0)
 			for (uint32_t j = 1; j <= p; j++)
-				sequence.push_back(a[j]);
+			{
+				_seq_buffer.push_back(a[j]);
+				_generated_length++;
+
+				if (initial_sequence_cache.size() < sequence_target_fill)
+				{
+					initial_sequence_cache.push_back(a[j]);
+				}
+			}
 
 		return;
 	}
+
+	if (flow_control())
+		return;
 
 	a[t] = a[t - p];
 	db(t + 1, p);
 	for (uint8_t j = a[t - p] + 1; j < k; j++)
 	{
+
+		if (flow_control())
+			return;
+
 		a[t] = j;
 		db(t + 1, t);
 	}
 };
 
+bool DeBruijnSequencer::flow_control()
+{
+	// if we've reached our target size, lets wait a bit until it gets consumed
+	while (_seq_buffer.size() >= sequence_target_fill)
+	{
+		chThdSleep(100);
+	};
+
+	return chThdShouldTerminate();
+}
+
 bool DeBruijnSequencer::read_bit()
 {
-	bool cur_bit = sequence[0];
+	bool cur_bit = _seq_buffer[0];
 
-	// delete from the sequence
-	sequence.erase(sequence.begin());
+	// delete the first entry from the _seq_buffer
+	_seq_buffer.erase(_seq_buffer.begin());
+
+	bits_read++;
 
 	return cur_bit;
 };

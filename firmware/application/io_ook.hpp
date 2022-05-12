@@ -29,7 +29,7 @@
 
 using namespace encoders;
 
-enum OOKEncoderReaderReadType
+enum OOKFrameReaderReadType
 {
 	OOK_READER_COMPLETED = 0,
 	OOK_READER_READING_FRAGMENT = 1,
@@ -40,20 +40,20 @@ enum OOKDebruijnReaderReadType
 {
 	OOK_DEBRUIJN_COMPLETED = 0,
 	OOK_DEBRUIJN_READING_BIT = 1,
-	OOK_DEBRUIJN_READING_FRAGMENT = 2,
+	OOK_DEBRUIJN_READING_SYMBOL_FRAGMENT = 2,
 };
 
-class OOKEncoderReader : public stream::Reader
+class OOKFrameReader : public stream::Reader
 {
 public:
-	// std::function<void(OOKEncoderReader &)> on_before_frame_fragment_usage{};
-	std::function<void(OOKEncoderReader &)> on_complete{};
+	// std::function<void(OOKFrameReader &)> on_before_frame_fragment_usage{};
+	std::function<void(OOKFrameReader &)> on_complete{};
 
-	OOKEncoderReader() = default;
+	OOKFrameReader() = default;
 
-	OOKEncoderReader(const OOKEncoderReader &) = delete;
-	OOKEncoderReader &operator=(const OOKEncoderReader &) = delete;
-	OOKEncoderReader &operator=(OOKEncoderReader &&) = delete;
+	OOKFrameReader(const OOKFrameReader &) = delete;
+	OOKFrameReader &operator=(const OOKFrameReader &) = delete;
+	OOKFrameReader &operator=(OOKFrameReader &&) = delete;
 
 	Result<uint64_t, Error> read(void *const buffer, const uint64_t bsize) override;
 	uint64_t length();
@@ -70,8 +70,8 @@ protected:
 	uint64_t bytes_read{0};
 
 private:
-	void change_read_type(OOKEncoderReaderReadType rt);
-	OOKEncoderReaderReadType read_type = OOK_READER_READING_FRAGMENT;
+	void change_read_type(OOKFrameReaderReadType rt);
+	OOKFrameReaderReadType read_type = OOK_READER_READING_FRAGMENT;
 };
 
 class OOKDebruijnReader : public stream::Reader
@@ -88,13 +88,13 @@ public:
 	void reset();
 
 	bool cur_bit = false;
-	std::vector<bool> *on_frame_fragments{};
-	std::vector<bool> *off_frame_fragments{};
+	std::vector<bool> *on_symbol_fragments{};
+	std::vector<bool> *off_symbol_fragments{};
 	DeBruijnSequencer *sequencer{};
 
 	cursor fragments_cursor{1};
 
 private:
-	void change_read_type(OOKDebruijnReaderReadType rt);
+	// void change_read_type(OOKDebruijnReaderReadType rt);
 	OOKDebruijnReaderReadType read_type = OOK_DEBRUIJN_READING_BIT;
 };

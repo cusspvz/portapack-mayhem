@@ -61,7 +61,7 @@ namespace ui
 		TX_MODE_LOADER = 4,
 	};
 
-	const std::vector<std::pair<std::string, int32_t>> PERIODS_PER_SYMBOL = {
+	const std::vector<std::pair<std::string, int32_t>> PERIODS_PER_BIT = {
 		{"2", 2},
 		{"3", 3},
 		{"4", 4},
@@ -138,10 +138,10 @@ namespace ui
 			},
 		};
 
-		OptionsField options_shorter_pulse_period{
+		OptionsField options_period_per_bit{
 			{25 * 8, 0 * 8},
 			5,
-			PERIODS_PER_SYMBOL,
+			PERIODS_PER_BIT,
 		};
 
 		NumberField field_repeat_min{
@@ -203,7 +203,7 @@ namespace ui
 		OptionsField options_period_per_bit{
 			{23 * 8, 0 * 8},
 			5,
-			PERIODS_PER_SYMBOL,
+			PERIODS_PER_BIT,
 		};
 	};
 
@@ -228,13 +228,12 @@ namespace ui
 		Labels labels{
 			{{1 * 8, 0 * 8}, "Word Length:", Color::light_grey()},
 			{{1 * 8, 2 * 8}, "Fragments #:", Color::light_grey()},
-			{{1 * 8, 6 * 8}, "Pause:", Color::light_grey()},
 
 			{{14 * 8, 0 * 8}, "Sh Pulse:", Color::light_grey()},
 			{{28 * 8, 0 * 8}, "us", Color::light_grey()},
 			// frame descriptors
-			{{0 * 8, 10 * 8}, "Frag 0:", Color::light_grey()},
-			{{0 * 8, 12 * 8}, "Frag 1:", Color::light_grey()},
+			{{1 * 8, 6 * 8}, "Frag 0:", Color::light_grey()},
+			{{1 * 8, 8 * 8}, "Frag 1:", Color::light_grey()},
 		};
 
 		NumberField field_wordlength{
@@ -253,27 +252,19 @@ namespace ui
 			' ',
 		};
 
-		OptionsField options_shorter_pulse_period{
+		OptionsField options_period_per_bit{
 			{23 * 8, 0 * 8},
 			5,
-			PERIODS_PER_SYMBOL,
+			PERIODS_PER_BIT,
 		};
 
-		NumberField field_pause_between_frames{
-			{8 * 8, 6 * 8},
-			5,
-			{0, 100},
-			1,
-			' ',
-		};
-
-		SymField symfield_fragment_0{
-			{8 * 8, 10 * 8},
+		SymField symfield_fragment_off{
+			{9 * 8, 6 * 8},
 			16,
 			SymField::SYMFIELD_DEF,
 		};
-		SymField symfield_fragment_1{
-			{8 * 8, 12 * 8},
+		SymField symfield_fragment_on{
+			{9 * 8, 8 * 8},
 			16,
 			SymField::SYMFIELD_DEF,
 		};
