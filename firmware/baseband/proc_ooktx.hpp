@@ -52,6 +52,7 @@ private:
 
 	bool configured{false};
 	uint32_t samples_per_bit{0};
+	uint64_t max_bytes{0};
 
 	// streaming approach
 	uint32_t bytes_read{0};

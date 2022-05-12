@@ -675,7 +675,7 @@ class StreamReceiveConfigMessage : public Message
 public:
 	constexpr StreamReceiveConfigMessage(
 		StreamReceiveConfig *const config) : Message{ID::StreamReceiveConfig},
-									   config{config}
+											 config{config}
 	{
 	}
 
@@ -706,7 +706,7 @@ class StreamTransmitConfigMessage : public Message
 public:
 	constexpr StreamTransmitConfigMessage(
 		StreamTransmitConfig *const config) : Message{ID::StreamTransmitConfig},
-									  config{config}
+											  config{config}
 	{
 	}
 
@@ -978,12 +978,15 @@ class OOKConfigureMessage : public Message
 {
 public:
 	constexpr OOKConfigureMessage(
-		const uint32_t pulses_per_bit) : Message{ID::OOKConfigure},
-										 pulses_per_bit(pulses_per_bit)
+		const uint32_t pulses_per_bit,
+		const uint64_t max_bytes) : Message{ID::OOKConfigure},
+									pulses_per_bit(pulses_per_bit),
+									max_bytes(max_bytes)
 	{
 	}
 
 	const uint32_t pulses_per_bit;
+	const uint64_t max_bytes;
 };
 
 class SSTVConfigureMessage : public Message

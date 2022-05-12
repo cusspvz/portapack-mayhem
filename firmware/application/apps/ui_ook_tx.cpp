@@ -658,7 +658,7 @@ namespace ui
 	// NOTE: should be called after changing the tx_mode
 	void OOKTxView::progress_reset()
 	{
-		progress_bar.set_max(1);
+		progress_bar.set_max(100);
 		progress_update(0);
 	}
 
@@ -728,6 +728,7 @@ namespace ui
 			case TX_MODE_MANUAL:
 			case TX_MODE_BRUTEFORCE:
 				auto ook_frame_reader_p = std::make_unique<OOKFrameReader>();
+				uint64_t max_bytes = 0;
 				ook_frame_reader_p->reset();
 
 				ook_frame_reader_p->frame_fragments = &frame_fragments;
@@ -739,7 +740,7 @@ namespace ui
 					tx_mode = TX_MODE_MANUAL;
 
 					// set max at the progress bar
-					progress_bar.set_max(ook_frame_reader_p->length());
+					max_bytes = ook_frame_reader_p->length();
 				}
 
 				if (view_generator.options_tx_method.selected_index_value() == TX_MODE_BRUTEFORCE)
@@ -749,7 +750,7 @@ namespace ui
 					bruteforce_cursor.total = view_generator.symfield_word.get_possibilities_count();
 
 					// set max at the progress bar
-					progress_bar.set_max(ook_frame_reader_p->length() * bruteforce_cursor.total);
+					max_bytes = ook_frame_reader_p->length() * bruteforce_cursor.total;
 
 					ook_frame_reader_p->on_complete = [this](OOKFrameReader &reader)
 					{
@@ -770,7 +771,7 @@ namespace ui
 
 				ook_frame_reader_p->reset();
 
-				tx(std::move(ook_frame_reader_p), pulses_per_bit);
+				tx(std::move(ook_frame_reader_p), pulses_per_bit, max_bytes);
 				break;
 
 				// case TX_MODE_DEBRUIJN:
@@ -802,15 +803,14 @@ namespace ui
 			ook_debruijn_reader_p->off_symbol_fragments = &off_symbol_fragments;
 			ook_debruijn_reader_p->reset();
 
-			progress_bar.set_max(ook_debruijn_reader_p->length());
-
-			tx(std::move(ook_debruijn_reader_p), pulses_per_bit);
+			tx(std::move(ook_debruijn_reader_p), pulses_per_bit, ook_debruijn_reader_p->length());
 		}
 	}
 
 	void OOKTxView::tx(
 		std::unique_ptr<stream::Reader> reader,
-		uint32_t pulses_per_bit)
+		uint32_t pulses_per_bit,
+		uint64_t max_bytes)
 	{
 		if (!(bool)reader)
 		{
@@ -818,7 +818,7 @@ namespace ui
 			return;
 		}
 
-		baseband::set_ook_data(pulses_per_bit);
+		baseband::set_ook_data(pulses_per_bit, max_bytes);
 
 		stream_reader_thread = std::make_unique<StreamReaderThread>(
 			std::move(reader),

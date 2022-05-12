@@ -218,9 +218,9 @@ namespace baseband
 		send_message(&message);
 	}
 
-	void set_ook_data(const uint32_t pulses_per_bit)
+	void set_ook_data(const uint32_t pulses_per_bit, const uint64_t max_bytes)
 	{
-		const OOKConfigureMessage message{pulses_per_bit};
+		const OOKConfigureMessage message{pulses_per_bit, max_bytes};
 
 		send_message(&message);
 	}
@@ -311,7 +311,7 @@ namespace baseband
 		}
 
 		creg::m4txevent::disable();
- 
+
 		ShutdownMessage message;
 		send_message(&message);
 
