@@ -720,7 +720,7 @@ public:
 	{
 	}
 
-	uint32_t progress = 0;
+	uint64_t progress = 0;
 	bool done = false;
 };
 
@@ -978,15 +978,12 @@ class OOKConfigureMessage : public Message
 {
 public:
 	constexpr OOKConfigureMessage(
-		const uint32_t pulses_per_bit,
-		const uint64_t max_bytes) : Message{ID::OOKConfigure},
-									pulses_per_bit(pulses_per_bit),
-									max_bytes(max_bytes)
+		const uint32_t pulses_per_bit) : Message{ID::OOKConfigure},
+										 pulses_per_bit(pulses_per_bit)
 	{
 	}
 
 	const uint32_t pulses_per_bit;
-	const uint64_t max_bytes;
 };
 
 class SSTVConfigureMessage : public Message

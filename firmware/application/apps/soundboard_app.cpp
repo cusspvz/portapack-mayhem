@@ -107,8 +107,7 @@ namespace ui
 
 		stream_reader_thread = std::make_unique<StreamReaderThread>(
 			std::move(reader),
-			read_size, buffer_count
-		);
+			read_size, buffer_count);
 
 		baseband::set_audiotx_config(
 			1536000 / 20, // Update vu-meter at 20Hz

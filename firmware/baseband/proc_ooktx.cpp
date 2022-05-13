@@ -59,7 +59,7 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 				if (bit_cursor.is_last())
 				{
 					//   - if the stream is empty, it means we're done! :yey:
-					if (bytes_read >= max_bytes || fill_buffer() == 0)
+					if (fill_buffer() == 0)
 						done();
 
 					bit_cursor.index = 0;
@@ -95,7 +95,7 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 	// inform UI about the progress if it still is confifured
 	if (configured)
 	{
-		txprogress_message.progress = bytes_read / max_bytes;
+		txprogress_message.progress = bytes_read;
 		shared_memory.application_queue.push(txprogress_message);
 	}
 }
@@ -167,7 +167,6 @@ void OOKTxProcessor::on_message(const Message *const message)
 void OOKTxProcessor::ook_config(const OOKConfigureMessage &message)
 {
 	bit_sampling.total = baseband_fs / (1000000 / message.pulses_per_bit);
-	max_bytes = message.max_bytes;
 	reset();
 };
 void OOKTxProcessor::stream_config(const StreamTransmitConfigMessage &message)

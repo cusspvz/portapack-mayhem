@@ -45,12 +45,6 @@ StreamReaderThread::StreamReaderThread(
 	size_t read_size,
 	size_t buffer_count) : config{read_size, buffer_count}, reader{std::move(reader)}
 {
-	terminate_callback = std::move([](uint32_t return_code)
-	{
-		StreamReaderThreadDoneMessage message{return_code};
-		EventDispatcher::send_message(message);
-	});
-
 	// Need significant stack for FATFS
 	thread = chThdCreateFromHeap(NULL, 1024, NORMALPRIO + 10, StreamReaderThread::static_fn, this);
 }
@@ -63,6 +57,7 @@ StreamReaderThread::~StreamReaderThread()
 	{
 		chThdTerminate(thread);
 		chThdWait(thread);
+
 		thread = nullptr;
 	}
 }
@@ -70,11 +65,11 @@ StreamReaderThread::~StreamReaderThread()
 msg_t StreamReaderThread::static_fn(void *arg)
 {
 	auto obj = static_cast<StreamReaderThread *>(arg);
-	const auto return_code = obj->run();
-	if (obj->terminate_callback)
-	{
-		obj->terminate_callback(return_code);
-	}
+	const uint32_t return_code = obj->run();
+
+	StreamReaderThreadDoneMessage message{return_code};
+	EventDispatcher::send_message(message);
+
 	return 0;
 }
 
@@ -89,11 +84,15 @@ uint32_t StreamReaderThread::run()
 	while (!ready_sig)
 	{
 		chThdSleep(100);
+		// TODO: consider a thread yield
 	};
 
 	// While empty buffers fifo is not empty...
 	while (!buffers.empty())
 	{
+		if (chThdShouldTerminate())
+			break;
+
 		prefill_buffer = buffers.get_prefill();
 
 		if (prefill_buffer == nullptr)
@@ -103,6 +102,7 @@ uint32_t StreamReaderThread::run()
 		else
 		{
 			size_t blocks = config.read_size / 512;
+			// uint64_t total_read = 0;
 
 			for (size_t c = 0; c < blocks; c++)
 			{
@@ -111,9 +111,12 @@ uint32_t StreamReaderThread::run()
 				{
 					return READ_ERROR;
 				}
+
+				// total_read += read_result.value();
 			}
 
 			prefill_buffer->set_size(config.read_size);
+			// prefill_buffer->set_size(total_read);
 
 			buffers.put(prefill_buffer);
 		}
@@ -125,7 +128,14 @@ uint32_t StreamReaderThread::run()
 	{
 		auto buffer = buffers.get();
 
+		if (chThdShouldTerminate())
+			break;
+
 		auto read_result = reader->read(buffer->data(), buffer->capacity());
+
+		if (chThdShouldTerminate())
+			break;
+
 		if (read_result.is_error())
 		{
 			return READ_ERROR;
@@ -139,6 +149,7 @@ uint32_t StreamReaderThread::run()
 		}
 
 		buffer->set_size(buffer->capacity());
+		// buffer->set_size(read_result.value());
 
 		buffers.put(buffer);
 	}

@@ -26,9 +26,9 @@
 using namespace lpc43xx;
 
 StreamOutput::StreamOutput(StreamTransmitConfig *const config) : fifo_buffers_empty{buffers_empty.data(), buffer_count_max_log2},
-														 fifo_buffers_full{buffers_full.data(), buffer_count_max_log2},
-														 config{config},
-														 data{std::make_unique<uint8_t[]>(config->read_size * config->buffer_count)}
+																 fifo_buffers_full{buffers_full.data(), buffer_count_max_log2},
+																 config{config},
+																 data{std::make_unique<uint8_t[]>(config->read_size * config->buffer_count)}
 {
 	config->fifo_buffers_empty = &fifo_buffers_empty;
 	config->fifo_buffers_full = &fifo_buffers_full;

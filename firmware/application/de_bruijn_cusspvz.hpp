@@ -37,16 +37,16 @@ public:
 	DeBruijnSequencer &operator=(const DeBruijnSequencer &) = delete;
 	DeBruijnSequencer &operator=(DeBruijnSequencer &&) = delete;
 
-	size_t init(const uint8_t wordlength);
+	uint64_t init(const uint8_t wordlength);
 	void reset();
 	bool read_bit();
-	size_t bits_read{0};
+	uint64_t bits_read{0};
 	bool consumed();
 
 	bool thread_ended();
-	size_t length();
+	uint64_t length();
 
-	const uint8_t sequence_target_fill = 64;
+	const uint8_t sequence_target_fill = 128;
 	std::vector<bool> initial_sequence_cache;
 
 	const uint8_t k = 2; // radix
@@ -55,7 +55,7 @@ public:
 private:
 	uint32_t _generated_length;
 	std::vector<bool> _seq_buffer;
-	size_t _length{0};
+	uint64_t _length{0};
 	Thread *thread{nullptr};
 
 	void db(uint8_t t, uint8_t p);

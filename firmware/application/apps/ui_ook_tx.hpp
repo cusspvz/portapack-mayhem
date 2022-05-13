@@ -290,19 +290,19 @@ namespace ui
 			stream_reader_thread{};
 		void handle_stream_reader_thread_done(const uint32_t return_code);
 		const size_t read_size{2048};
-		// const size_t read_size{16384};
 		const size_t buffer_count{3};
 
 		void generate_frame();
 		void progress_reset();
-		void progress_update(uint32_t progress);
+		void progress_update(uint64_t bytes);
 		void draw_waveform();
 		int16_t waveform_buffer[550];
 
 		void start_tx();
 		void on_tx_progress(const TXProgressMessage message);
-		void tx(std::unique_ptr<stream::Reader> reader, uint32_t samples_per_bit);
+		void tx(std::unique_ptr<stream::Reader> reader, uint32_t samples_per_bit, uint64_t max_bytes);
 		void stop_tx();
+		uint64_t tx_max_bytes{0};
 
 		// general
 		tx_modes tx_mode = TX_MODE_IDLE;

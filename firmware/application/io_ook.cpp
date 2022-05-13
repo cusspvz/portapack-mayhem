@@ -26,7 +26,10 @@
 
 uint64_t OOKFrameReader::length()
 {
-	return ((frame_fragments->size() * repetitions_cursor.total) + (pauses_cursor.total * (repetitions_cursor.total - 1))) / 8;
+	uint64_t frame_length = frame_fragments->size() * repetitions_cursor.total / 8;
+	uint64_t pauses_length = pauses_cursor.total * (repetitions_cursor.total - (!completition_requires_pause ? 1 : 0)) / 8;
+
+	return frame_length + pauses_length;
 };
 
 void OOKFrameReader::reset()
@@ -78,7 +81,7 @@ Result<uint64_t, Error> OOKFrameReader::read(void *const buffer, const uint64_t 
 	std::bitset<32> *rbuff = (std::bitset<32> *)buffer;
 
 	// start filling the buffer
-	for (size_t rbi = 0; rbi < bsize; rbi++)
+	for (uint64_t rbi = 0; rbi < bsize; rbi++)
 	{
 		rbuff[rbi].reset();
 
@@ -126,14 +129,15 @@ Result<uint64_t, Error> OOKFrameReader::read(void *const buffer, const uint64_t 
 		}
 	}
 
-	return {static_cast<size_t>(bread)};
+	return Result<uint64_t, Error>(bread);
 }
 
 // OOKDebruijnReader
 
 uint64_t OOKDebruijnReader::length()
 {
-	return (sequencer->length() * fragments_cursor.total) / 8;
+	return 2048;
+	// return sequencer->length() / 8 * fragments_cursor.total;
 };
 
 void OOKDebruijnReader::reset()
@@ -148,7 +152,7 @@ Result<uint64_t, Error> OOKDebruijnReader::read(void *const buffer, const uint64
 	std::bitset<32> *rbuff = (std::bitset<32> *)buffer;
 
 	// start filling the buffer
-	for (size_t rbi = 0; rbi < bsize; rbi++)
+	for (uint64_t rbi = 0; rbi < bsize; rbi++)
 	{
 		rbuff[rbi].reset();
 
@@ -159,7 +163,8 @@ Result<uint64_t, Error> OOKDebruijnReader::read(void *const buffer, const uint64
 				if (read_type == OOK_DEBRUIJN_READING_BIT)
 				{
 					// read bit from the debruijn thread and switch to the correct read type
-					cur_bit = sequencer->read_bit();
+					// cur_bit = sequencer->read_bit();
+					cur_bit = !cur_bit;
 
 					fragments_cursor.start_over();
 					read_type = OOK_DEBRUIJN_READING_SYMBOL_FRAGMENT;
@@ -176,7 +181,8 @@ Result<uint64_t, Error> OOKDebruijnReader::read(void *const buffer, const uint64
 					if (fragments_cursor.is_done())
 					{
 						// TODO in case the debruijn is complete, lets wrap it up, otherwise, read next bit
-						read_type = sequencer->consumed() ? OOK_DEBRUIJN_COMPLETED : OOK_DEBRUIJN_READING_BIT;
+						// read_type = sequencer->consumed() ? OOK_DEBRUIJN_COMPLETED : OOK_DEBRUIJN_READING_BIT;
+						read_type = false ? OOK_DEBRUIJN_COMPLETED : OOK_DEBRUIJN_READING_BIT;
 					}
 				}
 			}
@@ -185,5 +191,5 @@ Result<uint64_t, Error> OOKDebruijnReader::read(void *const buffer, const uint64
 		}
 	}
 
-	return {static_cast<size_t>(bread)};
+	return Result<uint64_t, Error>(bread);
 };

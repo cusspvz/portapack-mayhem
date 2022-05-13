@@ -218,9 +218,9 @@ namespace baseband
 		send_message(&message);
 	}
 
-	void set_ook_data(const uint32_t pulses_per_bit, const uint64_t max_bytes)
+	void set_ook_data(const uint32_t pulses_per_bit)
 	{
-		const OOKConfigureMessage message{pulses_per_bit, max_bytes};
+		const OOKConfigureMessage message{pulses_per_bit};
 
 		send_message(&message);
 	}

@@ -149,8 +149,7 @@ namespace ui
 
 			stream_reader_thread = std::make_unique<StreamReaderThread>(
 				std::move(reader),
-				read_size, buffer_count
-			);
+				read_size, buffer_count);
 		}
 		field_rfgain.on_change = [this](int32_t v)
 		{

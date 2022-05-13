@@ -40,8 +40,7 @@ public:
 	StreamReaderThread(
 		std::unique_ptr<stream::Reader> reader,
 		size_t read_size,
-		size_t buffer_count
-	);
+		size_t buffer_count);
 	~StreamReaderThread();
 
 	StreamReaderThread(const StreamReaderThread &) = delete;
@@ -61,11 +60,12 @@ public:
 		TERMINATED
 	};
 
+	void emit_thread_done_message(const uint32_t return_code);
+
 private:
 	StreamTransmitConfig config;
 	std::unique_ptr<stream::Reader> reader;
-	bool ready_sig;
-	std::function<void(uint32_t return_code)> terminate_callback;
+	bool ready_sig{false};
 	Thread *thread{nullptr};
 
 	MessageHandlerRegistration message_handler_fifo_signal{

@@ -652,7 +652,6 @@ namespace ui
 			err = "Streaming error";
 
 		stop_tx();
-		progress_reset();
 	}
 
 	// NOTE: should be called after changing the tx_mode
@@ -662,9 +661,11 @@ namespace ui
 		progress_update(0);
 	}
 
-	void OOKTxView::progress_update(uint32_t val)
+	void OOKTxView::progress_update(uint64_t bytes)
 	{
-		progress_bar.set_value(val);
+		// auto progress = (bytes / tx_max_bytes) * 100;
+		progress_bar.set_max(tx_max_bytes);
+		progress_bar.set_value(bytes);
 
 		if (err != "")
 		{
@@ -679,8 +680,8 @@ namespace ui
 		else
 		{
 			text_progress.set_style(&style_info);
-			text_progress.set(
-				"Transmitting (" + to_string_dec_uint(val) + "/" + to_string_dec_uint(progress_bar.get_max()) + ")");
+			// text_progress.set("Transmitting (" + to_string_dec_uint(progress) + "%)");
+			text_progress.set("Transmitting (" + to_string_dec_uint(bytes) + "/" + to_string_dec_uint(tx_max_bytes) + ")");
 		}
 	}
 
@@ -709,7 +710,8 @@ namespace ui
 
 			tx_mode = TX_MODE_LOADER;
 
-			tx(std::move(file_reader_p), pulses_per_bit);
+			// TODO: read the file size
+			tx(std::move(file_reader_p), pulses_per_bit, 1024);
 		}
 
 		// Generator View TX
@@ -727,8 +729,8 @@ namespace ui
 			{
 			case TX_MODE_MANUAL:
 			case TX_MODE_BRUTEFORCE:
-				auto ook_frame_reader_p = std::make_unique<OOKFrameReader>();
 				uint64_t max_bytes = 0;
+				auto ook_frame_reader_p = std::make_unique<OOKFrameReader>();
 				ook_frame_reader_p->reset();
 
 				ook_frame_reader_p->frame_fragments = &frame_fragments;
@@ -750,6 +752,7 @@ namespace ui
 					bruteforce_cursor.total = view_generator.symfield_word.get_possibilities_count();
 
 					// set max at the progress bar
+					ook_frame_reader_p->completition_requires_pause = true;
 					max_bytes = ook_frame_reader_p->length() * bruteforce_cursor.total;
 
 					ook_frame_reader_p->on_complete = [this](OOKFrameReader &reader)
@@ -793,8 +796,10 @@ namespace ui
 			tx_mode = TX_MODE_DEBRUIJN;
 
 			// reader
-			std::vector<bool> on_symbol_fragments = view_debruijn.symfield_fragment_on.value_bool_vector();
-			std::vector<bool> off_symbol_fragments = view_debruijn.symfield_fragment_off.value_bool_vector();
+			// std::vector<bool> on_symbol_fragments = view_debruijn.symfield_fragment_on.value_bool_vector();
+			// std::vector<bool> off_symbol_fragments = view_debruijn.symfield_fragment_off.value_bool_vector();
+			std::vector<bool> on_symbol_fragments = {true};
+			std::vector<bool> off_symbol_fragments = {false};
 
 			auto ook_debruijn_reader_p = std::make_unique<OOKDebruijnReader>();
 
@@ -818,7 +823,9 @@ namespace ui
 			return;
 		}
 
-		baseband::set_ook_data(pulses_per_bit, max_bytes);
+		tx_max_bytes = max_bytes;
+
+		baseband::set_ook_data(pulses_per_bit);
 
 		stream_reader_thread = std::make_unique<StreamReaderThread>(
 			std::move(reader),
@@ -847,8 +854,6 @@ namespace ui
 		view_generator.symfield_word.set_focusable(true);
 
 		progress_reset();
-		// generate_frame();
-		draw_waveform();
 	}
 
 	void OOKTxView::draw_waveform()

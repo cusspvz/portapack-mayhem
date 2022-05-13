@@ -56,15 +56,17 @@ StreamBuffer *BufferExchange::get(FIFO<StreamBuffer *> *fifo)
 		fifo->out(p);
 
 		if (p)
-		{
 			return p;
-		}
 
 		// Put thread to sleep, woken up by M4 IRQ
 		chSysLock();
 		thread = chThdSelf();
-		chSchGoSleepS(THD_STATE_SUSPENDED);
+		// chSchGoSleepS(THD_STATE_SUSPENDED);
+		chSchGoSleepTimeoutS(THD_STATE_SUSPENDED, 100);
 		chSysUnlock();
+
+		if (chThdShouldTerminate())
+			return p;
 	}
 }
 

@@ -31,15 +31,26 @@ DeBruijnSequencer::DeBruijnSequencer(const uint8_t wordlength)
 	initial_sequence_cache.reserve(sequence_target_fill);
 	_seq_buffer.reserve(sequence_target_fill);
 
+	// thread = chThdCreateFromHeap(NULL, 1024, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
+
 	init(wordlength);
 };
 
 DeBruijnSequencer::~DeBruijnSequencer()
 {
-	stop_thread();
+	if (thread)
+	{
+		if (thread->p_state != THD_STATE_FINAL)
+		{
+			chThdTerminate(thread);
+			chThdWait(thread);
+		}
+
+		thread = nullptr;
+	}
 }
 
-size_t DeBruijnSequencer::length()
+uint64_t DeBruijnSequencer::length()
 {
 	return _length;
 };
@@ -54,7 +65,7 @@ bool DeBruijnSequencer::thread_ended()
 	return _generated_length >= _length;
 };
 
-size_t DeBruijnSequencer::init(uint8_t wordlength)
+uint64_t DeBruijnSequencer::init(uint8_t wordlength)
 {
 	n = wordlength;
 
@@ -62,12 +73,10 @@ size_t DeBruijnSequencer::init(uint8_t wordlength)
 	_length = pow(k, n) + (n - 1);
 	reset();
 
-	stop_thread();
-
 	// TODO: this shouldnt be here, but on a thread instead. just using for testing purposes
 	// db(1, 1);
 
-	thread = chThdCreateFromHeap(NULL, 2048, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
+	// Reset the thread
 
 	return _length;
 };
@@ -82,18 +91,6 @@ void DeBruijnSequencer::reset()
 	initial_sequence_cache.clear();
 };
 
-bool DeBruijnSequencer::stop_thread()
-{
-	if (!thread)
-		return false;
-
-	chThdTerminate(thread);
-	chThdWait(thread);
-	thread = nullptr;
-
-	return true;
-}
-
 msg_t DeBruijnSequencer::static_fn(void *arg)
 {
 	DeBruijnSequencer *seq = static_cast<DeBruijnSequencer *>(arg);
@@ -103,11 +100,12 @@ msg_t DeBruijnSequencer::static_fn(void *arg)
 
 void DeBruijnSequencer::run()
 {
+	// TODO: consider reusing the heap
+
 	db(1, 1);
 
 	if (chThdShouldTerminate())
 	{
-
 		for (uint8_t i = 0, nremain = n - 1; nremain > 0; i += 2, nremain--)
 		{
 			_seq_buffer.push_back(initial_sequence_cache[i % _generated_length]);
@@ -159,7 +157,7 @@ bool DeBruijnSequencer::flow_control()
 	// if we've reached our target size, lets wait a bit until it gets consumed
 	while (_seq_buffer.size() >= sequence_target_fill)
 	{
-		chThdSleep(100);
+		chThdYield();
 	};
 
 	return chThdShouldTerminate();
