@@ -75,10 +75,10 @@ void OOKFrameReader::change_read_type(OOKFrameReaderReadType rt)
 	read_type = rt;
 };
 
-Result<uint64_t, Error> OOKFrameReader::read(void *const buffer, const uint64_t bsize)
+Result<uint64_t, Error> OOKFrameReader::read(void *const bufferp, const uint64_t bsize)
 {
 	uint64_t bread = 0;
-	std::bitset<32> *rbuff = (std::bitset<32> *)buffer;
+	std::bitset<32> *rbuff = (std::bitset<32> *)bufferp;
 
 	// start filling the buffer
 	for (uint64_t rbi = 0; rbi < bsize; rbi++)
@@ -136,8 +136,8 @@ Result<uint64_t, Error> OOKFrameReader::read(void *const buffer, const uint64_t 
 
 uint64_t OOKDebruijnReader::length()
 {
-	return 2048;
-	// return sequencer->length() / 8 * fragments_cursor.total;
+	// return 2048;
+	return sequencer->length() / 8 * fragments_cursor.total;
 };
 
 void OOKDebruijnReader::reset()
@@ -146,10 +146,10 @@ void OOKDebruijnReader::reset()
 	fragments_cursor.start_over();
 };
 
-Result<uint64_t, Error> OOKDebruijnReader::read(void *const buffer, const uint64_t bsize)
+Result<uint64_t, Error> OOKDebruijnReader::read(void *const bufferp, const uint64_t bsize)
 {
 	uint64_t bread = 0;
-	std::bitset<32> *rbuff = (std::bitset<32> *)buffer;
+	std::bitset<32> *rbuff = (std::bitset<32> *)bufferp;
 
 	// start filling the buffer
 	for (uint64_t rbi = 0; rbi < bsize; rbi++)
@@ -163,8 +163,10 @@ Result<uint64_t, Error> OOKDebruijnReader::read(void *const buffer, const uint64
 				if (read_type == OOK_DEBRUIJN_READING_BIT)
 				{
 					// read bit from the debruijn thread and switch to the correct read type
-					// cur_bit = sequencer->read_bit();
-					cur_bit = !cur_bit;
+					cur_bit = sequencer->read_bit();
+
+					// DEBUG: used to detect delays in between the this reader, the de bruijn sequencer and the stream reader thread
+					// cur_bit = !cur_bit;
 
 					fragments_cursor.start_over();
 					read_type = OOK_DEBRUIJN_READING_SYMBOL_FRAGMENT;

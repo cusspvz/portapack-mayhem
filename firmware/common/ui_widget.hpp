@@ -652,7 +652,7 @@ namespace ui
 		uint32_t value_dec_u32();
 		uint64_t value_hex_u64();
 		std::string value_string();
-		std::vector<bool> value_bool_vector();
+		void value_bool_vector(std::vector<bool> *bool_vector_p);
 
 		void paint(Painter &painter) override;
 

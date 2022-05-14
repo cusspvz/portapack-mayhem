@@ -239,7 +239,7 @@ namespace ui
 		NumberField field_wordlength{
 			{14 * 8, 0 * 8},
 			2,
-			{1, 12},
+			{1, 16},
 			1,
 			' ',
 		};
@@ -247,7 +247,7 @@ namespace ui
 		NumberField field_fragments{
 			{14 * 8, 2 * 8},
 			2,
-			{1, 16},
+			{1, 8},
 			1,
 			' ',
 		};
@@ -310,6 +310,8 @@ namespace ui
 
 		DeBruijnSequencer sequencer{8};
 		std::vector<bool> frame_fragments{};
+		std::vector<bool> on_symbol_fragments{};
+		std::vector<bool> off_symbol_fragments{};
 
 		// UI related
 		NavigationView &nav_;

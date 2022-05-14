@@ -111,6 +111,9 @@ namespace ui
 	void OOKTxGeneratorView::focus()
 	{
 		options_encoder.focus();
+		
+		if (on_waveform_change_request)
+				on_waveform_change_request();
 	}
 
 	void OOKTxGeneratorView::on_show()
@@ -393,18 +396,20 @@ namespace ui
 		};
 
 		// set default values
-		field_wordlength.set_value(4);
-		field_fragments.set_value(4);
-		options_period_per_bit.set_by_value(32);
-		symfield_fragment_off.set_next_possibility();
+		field_wordlength.set_value(8);
+		field_fragments.set_value(1);
+		options_period_per_bit.set_by_value(256);
 
-		for (uint32_t i = 0; i < (uint32_t)field_fragments.value(); i++)
-			symfield_fragment_on.set_sym(i, 1);
+		// symfield_fragment_off.set_next_possibility();
+		symfield_fragment_on.set_next_possibility();
 	}
 
 	void OOKTxDeBruijnView::focus()
 	{
 		field_wordlength.focus();
+
+		if (on_waveform_change_request)
+				on_waveform_change_request();
 	}
 
 	void OOKTxDeBruijnView::reset_symfield()
@@ -574,7 +579,6 @@ namespace ui
 	void OOKTxView::focus()
 	{
 		tab_view.focus();
-		refresh();
 	}
 
 	void OOKTxView::refresh()
@@ -584,8 +588,11 @@ namespace ui
 		{
 			auto target_wordlength = view_debruijn.field_wordlength.value();
 
-			if (sequencer.n != target_wordlength)
+			// only reinit the sequencer in case the wordlength differs
+			if (sequencer.n != target_wordlength) {
 				sequencer.init(target_wordlength);
+				sequencer.wait_for_buffer_completed();
+			}
 		}
 
 		generate_frame();
@@ -595,6 +602,9 @@ namespace ui
 
 	OOKTxView::~OOKTxView()
 	{
+		if (stream_reader_thread)
+			stream_reader_thread.reset();
+
 		transmitter_model.disable();
 		baseband::shutdown();
 	}
@@ -624,22 +634,17 @@ namespace ui
 			frame_fragments.clear();
 
 			// generate the frame fragments
-			std::vector<bool> on_symbol_fragments = view_debruijn.symfield_fragment_on.value_bool_vector();
-			std::vector<bool> off_symbol_fragments = view_debruijn.symfield_fragment_off.value_bool_vector();
+			view_debruijn.symfield_fragment_on.value_bool_vector(&on_symbol_fragments);
+			view_debruijn.symfield_fragment_off.value_bool_vector(&off_symbol_fragments);
 
-			uint32_t de_bruijn_size = sequencer.initial_sequence_cache.size();
-			frame_fragments.reserve(view_debruijn.field_fragments.value() * sequencer.initial_sequence_cache.size());
+			frame_fragments.reserve(view_debruijn.field_fragments.value() * sequencer.waveform_cache.size());
 
-			for (uint32_t i = 0; i < de_bruijn_size; i++)
+			for (uint8_t i = 0; i < sequencer.waveform_cache.size(); i++)
 			{
-				if (sequencer.initial_sequence_cache[i])
-				{
+				if (sequencer.waveform_cache[i])
 					frame_fragments.insert(frame_fragments.begin(), on_symbol_fragments.begin(), on_symbol_fragments.end());
-				}
 				else
-				{
 					frame_fragments.insert(frame_fragments.begin(), off_symbol_fragments.begin(), off_symbol_fragments.end());
-				}
 			}
 		}
 	}
@@ -772,8 +777,6 @@ namespace ui
 					};
 				}
 
-				ook_frame_reader_p->reset();
-
 				tx(std::move(ook_frame_reader_p), pulses_per_bit, max_bytes);
 				break;
 
@@ -796,16 +799,14 @@ namespace ui
 			tx_mode = TX_MODE_DEBRUIJN;
 
 			// reader
-			// std::vector<bool> on_symbol_fragments = view_debruijn.symfield_fragment_on.value_bool_vector();
-			// std::vector<bool> off_symbol_fragments = view_debruijn.symfield_fragment_off.value_bool_vector();
-			std::vector<bool> on_symbol_fragments = {true};
-			std::vector<bool> off_symbol_fragments = {false};
-
 			auto ook_debruijn_reader_p = std::make_unique<OOKDebruijnReader>();
 
 			ook_debruijn_reader_p->sequencer = &sequencer;
+
+			// NOTE: no need to generate the symbols as we're rebuilding these at every refresh
 			ook_debruijn_reader_p->on_symbol_fragments = &on_symbol_fragments;
 			ook_debruijn_reader_p->off_symbol_fragments = &off_symbol_fragments;
+
 			ook_debruijn_reader_p->reset();
 
 			tx(std::move(ook_debruijn_reader_p), pulses_per_bit, ook_debruijn_reader_p->length());

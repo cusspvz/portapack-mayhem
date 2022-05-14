@@ -62,7 +62,7 @@ StreamBuffer *BufferExchange::get(FIFO<StreamBuffer *> *fifo)
 		chSysLock();
 		thread = chThdSelf();
 		// chSchGoSleepS(THD_STATE_SUSPENDED);
-		chSchGoSleepTimeoutS(THD_STATE_SUSPENDED, 100);
+		chSchGoSleepTimeoutS(THD_STATE_SUSPENDED, 500);
 		chSysUnlock();
 
 		if (chThdShouldTerminate())

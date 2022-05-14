@@ -27,16 +27,32 @@
 
 DeBruijnSequencer::DeBruijnSequencer(const uint8_t wordlength)
 {
-	// reserve memory
-	initial_sequence_cache.reserve(sequence_target_fill);
-	_seq_buffer.reserve(sequence_target_fill);
+	// set sequence fifo buffer capacity
+	waveform_cache.resize(DE_BRUIJN_BUFFER_SIZE);
+	_seq_buffer_queue.resize(DE_BRUIJN_BUFFER_SIZE);
 
-	// thread = chThdCreateFromHeap(NULL, 1024, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
+	// Start signal
+	chBSemInit(&_bsem, false);
 
 	init(wordlength);
 };
 
 DeBruijnSequencer::~DeBruijnSequencer()
+{
+	thread_stop();
+};
+
+uint64_t DeBruijnSequencer::length()
+{
+	return _target_length;
+};
+
+bool DeBruijnSequencer::consumed()
+{
+	return !thread && _seq_buffer_queue.empty();
+};
+
+void DeBruijnSequencer::thread_stop()
 {
 	if (thread)
 	{
@@ -48,51 +64,62 @@ DeBruijnSequencer::~DeBruijnSequencer()
 
 		thread = nullptr;
 	}
-}
-
-uint64_t DeBruijnSequencer::length()
-{
-	return _length;
 };
 
-bool DeBruijnSequencer::consumed()
+void DeBruijnSequencer::thread_start()
 {
-	return thread_ended() && _seq_buffer.size() == 0;
-}
+	thread_stop();
+
+	thread = chThdCreateFromHeap(NULL, 1280, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
+};
 
 bool DeBruijnSequencer::thread_ended()
 {
-	return _generated_length >= _length;
+	return !thread;
 };
+
+void DeBruijnSequencer::wait_for_buffer_completed() {
+	if (!thread || _seq_buffer_queue.size() == DE_BRUIJN_BUFFER_SIZE) {
+		return;
+	}
+
+	chBSemWait(&_bsem);
+
+	// reset signal
+	chBSemReset(&_bsem, false);
+};
+
+void DeBruijnSequencer::signal_buffer_completed() {
+	chBSemSignal(&_bsem);
+}
 
 uint64_t DeBruijnSequencer::init(uint8_t wordlength)
 {
 	n = wordlength;
 
 	// calculate new length
-	_length = pow(k, n) + (n - 1);
-	reset();
+	_target_length = pow(k, n) + (n - 1);
 
-	// TODO: this shouldnt be here, but on a thread instead. just using for testing purposes
-	// db(1, 1);
-
-	// Reset the thread
-
-	return _length;
-};
-
-void DeBruijnSequencer::reset()
-{
 	// fill the var `a` with 0s
-	for (uint8_t i = 1; i <= sizeof(a); i++)
+	for (uint8_t i = 0; i < sizeof(a); i++)
 		a[i] = false;
 
-	_seq_buffer.clear();
-	initial_sequence_cache.clear();
+	// clear waveform cache
+	waveform_cache.clear();
+
+	// clear fifo queue
+	_seq_buffer_queue.clear();
+
+	// Reset the thread
+	thread_start();
+
+	return _target_length;
 };
 
 msg_t DeBruijnSequencer::static_fn(void *arg)
 {
+	// todo: might be good to use a chibi thread semaphore to avoid recreating threads
+
 	DeBruijnSequencer *seq = static_cast<DeBruijnSequencer *>(arg);
 	seq->run();
 	return 0;
@@ -100,23 +127,23 @@ msg_t DeBruijnSequencer::static_fn(void *arg)
 
 void DeBruijnSequencer::run()
 {
-	// TODO: consider reusing the heap
-
 	db(1, 1);
 
-	if (chThdShouldTerminate())
+	for (uint8_t i = 0, nremain = n - 1; nremain > 0; i += 2, nremain--)
 	{
-		for (uint8_t i = 0, nremain = n - 1; nremain > 0; i += 2, nremain--)
-		{
-			_seq_buffer.push_back(initial_sequence_cache[i % _generated_length]);
-			_generated_length++;
-		}
+		if (flow_control())
+			return;
+
+		_seq_buffer_queue.push_back(waveform_cache[i % _generated_length]);
+		_generated_length++;
 	}
+
+	signal_buffer_completed();
 }
 
 void DeBruijnSequencer::db(uint8_t t, uint8_t p)
 {
-	if (flow_control())
+	if (chThdShouldTerminate())
 		return;
 
 	if (t > n)
@@ -124,19 +151,21 @@ void DeBruijnSequencer::db(uint8_t t, uint8_t p)
 		if (n % p == 0)
 			for (uint32_t j = 1; j <= p; j++)
 			{
-				_seq_buffer.push_back(a[j]);
-				_generated_length++;
+				if (flow_control())
+					return;
 
-				if (initial_sequence_cache.size() < sequence_target_fill)
-				{
-					initial_sequence_cache.push_back(a[j]);
-				}
+				// Generate bit (a[j])
+				if (waveform_cache.size() < DE_BRUIJN_BUFFER_SIZE)
+					waveform_cache.push_back(a[j]);
+
+				_seq_buffer_queue.push_back(a[j]);
+				_generated_length++;
 			}
 
 		return;
 	}
 
-	if (flow_control())
+	if (chThdShouldTerminate())
 		return;
 
 	a[t] = a[t - p];
@@ -144,7 +173,7 @@ void DeBruijnSequencer::db(uint8_t t, uint8_t p)
 	for (uint8_t j = a[t - p] + 1; j < k; j++)
 	{
 
-		if (flow_control())
+		if (chThdShouldTerminate())
 			return;
 
 		a[t] = j;
@@ -154,10 +183,20 @@ void DeBruijnSequencer::db(uint8_t t, uint8_t p)
 
 bool DeBruijnSequencer::flow_control()
 {
+	if (_seq_buffer_queue.size() == DE_BRUIJN_BUFFER_SIZE) {
+		signal_buffer_completed();
+	}
+
 	// if we've reached our target size, lets wait a bit until it gets consumed
-	while (_seq_buffer.size() >= sequence_target_fill)
+	while (_seq_buffer_queue.size() == DE_BRUIJN_BUFFER_SIZE)
 	{
-		chThdYield();
+		// suspend thread with a timeout (200 cycles)
+		chSysLock();
+		chSchGoSleepTimeoutS(THD_STATE_SUSPENDED, 500);
+		chSysUnlock();
+
+		if (chThdShouldTerminate())
+			return true;
 	};
 
 	return chThdShouldTerminate();
@@ -165,12 +204,22 @@ bool DeBruijnSequencer::flow_control()
 
 bool DeBruijnSequencer::read_bit()
 {
-	bool cur_bit = _seq_buffer[0];
 
-	// delete the first entry from the _seq_buffer
-	_seq_buffer.erase(_seq_buffer.begin());
+	// resume but only if it strictly necessary
+	// if (_seq_buffer_queue.empty())
+	// {
+	// 	chSchReadyI(thread);
 
-	bits_read++;
+		// if we were unable to fill more, always return false
+		if (_seq_buffer_queue.empty())
+		{
+			return false;
+		}
+	// }
 
+	// read and delete the first entry from the _seq_buffer_queue
+	bool cur_bit = _seq_buffer_queue.front();
+	_seq_buffer_queue.pop_front();
+	_consumed_length++;
 	return cur_bit;
 };

@@ -1780,18 +1780,16 @@ namespace ui
 		return return_string;
 	}
 
-	std::vector<bool> SymField::value_bool_vector()
+	void SymField::value_bool_vector(std::vector<bool> *bool_vectorp)
 	{
-		std::vector<bool> bool_vector;
-		bool_vector.reserve(length_);
+		bool_vectorp->clear();
+		bool_vectorp->reserve(length_);
 
 		for (uint32_t i = 0; i < length_; i++)
 		{
 			// false for 0, true for any other value
-			bool_vector.push_back(values_[i] != 0);
+			bool_vectorp->push_back(values_[i] != 0);
 		}
-
-		return bool_vector;
 	};
 
 	uint32_t SymField::get_sym(const uint32_t index)
