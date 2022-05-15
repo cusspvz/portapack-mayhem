@@ -613,9 +613,9 @@ namespace ui
 
 	void OOKTxView::progress_update(uint64_t bytes)
 	{
-		// auto progress = (bytes / tx_max_bytes) * 100;
+		uint32_t progress = (uint32_t)((bytes / tx_max_bytes) * 100);
 		progress_bar.set_max(100);
-		progress_bar.set_value(50);
+		progress_bar.set_value(progress);
 		// progress_bar.set_max(tx_max_bytes);
 		// progress_bar.set_value(bytes);
 
@@ -719,7 +719,7 @@ namespace ui
 						reader.reset();
 
 						// hide the waveform
-						waveform.hidden(true);
+						// waveform.hidden(true);
 					};
 				}
 
@@ -755,7 +755,9 @@ namespace ui
 			ook_debruijn_reader_p->off_symbol_fragments = &off_symbol_fragments;
 
 			ook_debruijn_reader_p->reset();
-			tx(std::move(ook_debruijn_reader_p), pulses_per_bit, ook_debruijn_reader_p->length());
+			uint64_t max_bytes = ook_debruijn_reader_p->length();
+
+			tx(std::move(ook_debruijn_reader_p), pulses_per_bit, max_bytes);
 		}
 	}
 
@@ -800,7 +802,7 @@ namespace ui
 		tx_view.set_transmitting(false);
 		view_generator.symfield_word.set_focusable(true);
 
-		waveform.hidden(false);
+		// waveform.hidden(false);
 		progress_reset();
 	}
 
