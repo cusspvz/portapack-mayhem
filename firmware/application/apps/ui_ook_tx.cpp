@@ -111,14 +111,14 @@ namespace ui
 	void OOKTxGeneratorView::focus()
 	{
 		options_encoder.focus();
-		
-		if (on_waveform_change_request)
-				on_waveform_change_request();
 	}
 
 	void OOKTxGeneratorView::on_show()
 	{
 		options_encoder.set_selected_index(0);
+
+		if (on_waveform_change_request)
+			on_waveform_change_request();
 	}
 
 	void OOKTxGeneratorView::check_if_encoder_is_vuln_to_debruijn()
@@ -290,6 +290,12 @@ namespace ui
 		// field_debug.focus();
 	}
 
+	void OOKTxFilesView::on_show()
+	{
+		if (on_waveform_change_request)
+			on_waveform_change_request();
+	}
+
 	// uint32_t OOKTxFilesView::get_repeat_total() { return 1; }
 	// uint32_t OOKTxFilesView::get_frame_part_total() { return 1; }
 
@@ -306,8 +312,7 @@ namespace ui
 	void OOKTxFilesView::on_file_changed(std::filesystem::path new_file_path)
 	{
 
-		File data_file, info_file;
-		// char file_data[257];
+		File data_file;
 
 		// Get file size
 		auto data_open_error = data_file.open("/" + new_file_path.string());
@@ -317,37 +322,10 @@ namespace ui
 		}
 
 		file_path = new_file_path;
+		file_size = data_file.size();
 
-		// Get original record frequency if available
-		// std::filesystem::path info_file_path = file_path;
-		// info_file_path.replace_extension(u".TXT");
-
-		// sample_rate = 500000;
-
-		// auto info_open_error = info_file.open("/" + info_file_path.string());
-		// if (!info_open_error.is_valid())
-		// {
-		// 	memset(file_data, 0, 257);
-		// 	auto read_size = info_file.read(file_data, 256);
-		// 	if (!read_size.is_error())
-		// 	{
-		// 		auto pos1 = strstr(file_data, "pulses_per_bit=");
-		// 		if (pos1)
-		// 		{
-		// 			pos1 += 16;
-		// 			field_frequency.set_value(strtoll(pos1, nullptr, 10));
-		// 		}
-		// 	}
-		// }
-
-		// text_sample_rate.set(unit_auto_scale(sample_rate, 3, 0) + "Hz");
-
-		// auto file_size = data_file.size();
-		// auto duration = (file_size * 1000) / (2 * 2 * sample_rate);
-
-		// progressbar.set_max(file_size);
-		// text_filename.set(file_path.filename().string().substr(0, 12));
-		// text_duration.set(to_string_time_ms(duration));
+		text_filename.set(file_path.filename().string().substr(0, 12));
+		text_duration.set(to_string_dec_uint(file_size * 8) + " bits");
 
 		// button_play.focus();
 	}
@@ -407,9 +385,16 @@ namespace ui
 	void OOKTxDeBruijnView::focus()
 	{
 		field_wordlength.focus();
+	}
 
+	void OOKTxDeBruijnView::on_show()
+	{
 		if (on_waveform_change_request)
-				on_waveform_change_request();
+			on_waveform_change_request();
+	}
+	void OOKTxDeBruijnView::on_hide()
+	{
+		sequencer.thread_stop();
 	}
 
 	void OOKTxDeBruijnView::reset_symfield()
@@ -426,47 +411,6 @@ namespace ui
 			symfield_fragment_on.set_symbol_list(i, symfield_symbols);
 		}
 	}
-
-	// uint32_t OOKTxDeBruijnView::get_repeat_total() { return 1; }
-	// uint32_t OOKTxDeBruijnView::get_frame_part_total()
-	// {
-	// 	return debruijn_sequencer.get_total_parts();
-	// }
-
-	// void OOKTxDeBruijnView::reset_reader()
-	// {
-	// 	reader.get()->reset("0");
-	// };
-
-	// std::string OOKTxDeBruijnView::generate_frame(const uint32_t frame_part_index, const bool reverse)
-	// // TODO: we still need to implement the reverse flag
-	// {
-	// 	uint32_t fragments_length = field_fragments.value();
-	// 	std::string fragment_0 = ""; // symfield_fragment_off.value_string();
-	// 	std::string fragment_1 = ""; // symfield_fragment_on.value_string();
-
-	// 	// build fragments
-	// 	for (uint32_t i = 0; i < fragments_length; i++)
-	// 	{
-	// 		fragment_0 += symfield_symbols[symfield_fragment_off.get_sym(i)];
-	// 		fragment_1 += symfield_symbols[symfield_fragment_on.get_sym(i)];
-	// 	}
-
-	// 	std::string frame_fragments = "";
-	// 	std::string frame_part = debruijn_sequencer.get_part(frame_part_index);
-
-	// 	for (uint32_t i = 0; i < frame_part.length(); i++)
-	// 	{
-	// 		bool bit = frame_part[i] == symfield_symbols[1];
-
-	// 		if (reverse)
-	// 			bit = !bit;
-
-	// 		frame_fragments += (bit) ? fragment_1 : fragment_0;
-	// 	}
-
-	// 	return frame_fragments;
-	// }
 
 	// 	///////////////////////////////////////////////////////////////////////////////
 	// 	// OOKTxView
@@ -589,9 +533,10 @@ namespace ui
 			auto target_wordlength = view_debruijn.field_wordlength.value();
 
 			// only reinit the sequencer in case the wordlength differs
-			if (sequencer.n != target_wordlength) {
-				sequencer.init(target_wordlength);
-				sequencer.wait_for_buffer_completed();
+			if (view_debruijn.sequencer.n != target_wordlength)
+			{
+				view_debruijn.sequencer.init(target_wordlength);
+				view_debruijn.sequencer.wait_for_buffer_completed();
 			}
 		}
 
@@ -637,14 +582,14 @@ namespace ui
 			view_debruijn.symfield_fragment_on.value_bool_vector(&on_symbol_fragments);
 			view_debruijn.symfield_fragment_off.value_bool_vector(&off_symbol_fragments);
 
-			frame_fragments.reserve(view_debruijn.field_fragments.value() * sequencer.waveform_cache.size());
+			frame_fragments.reserve(view_debruijn.field_fragments.value() * view_debruijn.sequencer.waveform_cache.size());
 
-			for (uint8_t i = 0; i < sequencer.waveform_cache.size(); i++)
+			for (auto &&res : view_debruijn.sequencer.waveform_cache)
 			{
-				if (sequencer.waveform_cache[i])
-					frame_fragments.insert(frame_fragments.begin(), on_symbol_fragments.begin(), on_symbol_fragments.end());
+				if (res)
+					frame_fragments.insert(frame_fragments.end(), on_symbol_fragments.begin(), on_symbol_fragments.end());
 				else
-					frame_fragments.insert(frame_fragments.begin(), off_symbol_fragments.begin(), off_symbol_fragments.end());
+					frame_fragments.insert(frame_fragments.end(), off_symbol_fragments.begin(), off_symbol_fragments.end());
 			}
 		}
 	}
@@ -669,8 +614,10 @@ namespace ui
 	void OOKTxView::progress_update(uint64_t bytes)
 	{
 		// auto progress = (bytes / tx_max_bytes) * 100;
-		progress_bar.set_max(tx_max_bytes);
-		progress_bar.set_value(bytes);
+		progress_bar.set_max(100);
+		progress_bar.set_value(50);
+		// progress_bar.set_max(tx_max_bytes);
+		// progress_bar.set_value(bytes);
 
 		if (err != "")
 		{
@@ -716,7 +663,7 @@ namespace ui
 			tx_mode = TX_MODE_LOADER;
 
 			// TODO: read the file size
-			tx(std::move(file_reader_p), pulses_per_bit, 1024);
+			tx(std::move(file_reader_p), pulses_per_bit, view_files.file_size * 8);
 		}
 
 		// Generator View TX
@@ -736,7 +683,6 @@ namespace ui
 			case TX_MODE_BRUTEFORCE:
 				uint64_t max_bytes = 0;
 				auto ook_frame_reader_p = std::make_unique<OOKFrameReader>();
-				ook_frame_reader_p->reset();
 
 				ook_frame_reader_p->frame_fragments = &frame_fragments;
 				ook_frame_reader_p->pauses_cursor.total = view_generator.field_pause_between_frames.value();
@@ -772,11 +718,12 @@ namespace ui
 						reader.frame_fragments = &this->frame_fragments;
 						reader.reset();
 
-						// trigger waveform redraw
-						draw_waveform();
+						// hide the waveform
+						waveform.hidden(true);
 					};
 				}
 
+				ook_frame_reader_p->reset();
 				tx(std::move(ook_frame_reader_p), pulses_per_bit, max_bytes);
 				break;
 
@@ -801,14 +748,13 @@ namespace ui
 			// reader
 			auto ook_debruijn_reader_p = std::make_unique<OOKDebruijnReader>();
 
-			ook_debruijn_reader_p->sequencer = &sequencer;
+			ook_debruijn_reader_p->sequencer = &view_debruijn.sequencer;
 
 			// NOTE: no need to generate the symbols as we're rebuilding these at every refresh
 			ook_debruijn_reader_p->on_symbol_fragments = &on_symbol_fragments;
 			ook_debruijn_reader_p->off_symbol_fragments = &off_symbol_fragments;
 
 			ook_debruijn_reader_p->reset();
-
 			tx(std::move(ook_debruijn_reader_p), pulses_per_bit, ook_debruijn_reader_p->length());
 		}
 	}
@@ -854,6 +800,7 @@ namespace ui
 		tx_view.set_transmitting(false);
 		view_generator.symfield_word.set_focusable(true);
 
+		waveform.hidden(false);
 		progress_reset();
 	}
 

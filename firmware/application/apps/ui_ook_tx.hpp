@@ -183,7 +183,9 @@ namespace ui
 
 		OOKTxFilesView(NavigationView &nav, Rect parent_rect);
 		void focus() override;
+		void on_show() override;
 
+		File::Size file_size{0};
 		std::filesystem::path file_path{};
 
 		// private:
@@ -195,6 +197,14 @@ namespace ui
 			{{14 * 8, 0 * 8}, "Sh Pulse:", Color::light_grey()},
 			{{28 * 8, 0 * 8}, "us", Color::light_grey()},
 		};
+
+		Text text_filename{
+			{11 * 8, 0 * 16, 12 * 8, 16},
+			"-"};
+
+		Text text_duration{
+			{11 * 8, 1 * 16, 6 * 8, 16},
+			"-"};
 
 		Button button_open{
 			{0 * 8, 0 * 16, 10 * 8, 2 * 16},
@@ -218,6 +228,10 @@ namespace ui
 
 		OOKTxDeBruijnView(NavigationView &nav, Rect parent_rect);
 		void focus() override;
+		void on_show() override;
+		void on_hide() override;
+
+		DeBruijnSequencer sequencer{8};
 
 		void reset_symfield();
 
@@ -239,7 +253,7 @@ namespace ui
 		NumberField field_wordlength{
 			{14 * 8, 0 * 8},
 			2,
-			{1, 16},
+			{1, 32},
 			1,
 			' ',
 		};
@@ -308,7 +322,6 @@ namespace ui
 		tx_modes tx_mode = TX_MODE_IDLE;
 		cursor bruteforce_cursor{};
 
-		DeBruijnSequencer sequencer{8};
 		std::vector<bool> frame_fragments{};
 		std::vector<bool> on_symbol_fragments{};
 		std::vector<bool> off_symbol_fragments{};

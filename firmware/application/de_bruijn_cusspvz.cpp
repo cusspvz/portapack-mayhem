@@ -29,7 +29,7 @@ DeBruijnSequencer::DeBruijnSequencer(const uint8_t wordlength)
 {
 	// set sequence fifo buffer capacity
 	waveform_cache.resize(DE_BRUIJN_BUFFER_SIZE);
-	_seq_buffer_queue.resize(DE_BRUIJN_BUFFER_SIZE);
+	_seq_buffer_queue.resize(DE_BRUIJN_BUFFER_SIZE * 1.5);
 
 	// Start signal
 	chBSemInit(&_bsem, false);
@@ -49,7 +49,7 @@ uint64_t DeBruijnSequencer::length()
 
 bool DeBruijnSequencer::consumed()
 {
-	return !thread && _seq_buffer_queue.empty();
+	return (_consumed_length >= _target_length) || !thread;
 };
 
 void DeBruijnSequencer::thread_stop()
@@ -69,8 +69,7 @@ void DeBruijnSequencer::thread_stop()
 void DeBruijnSequencer::thread_start()
 {
 	thread_stop();
-
-	thread = chThdCreateFromHeap(NULL, 1280, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
+	thread = chThdCreateFromHeap(NULL, 2048, NORMALPRIO + 10, DeBruijnSequencer::static_fn, this);
 };
 
 bool DeBruijnSequencer::thread_ended()
@@ -78,8 +77,10 @@ bool DeBruijnSequencer::thread_ended()
 	return !thread;
 };
 
-void DeBruijnSequencer::wait_for_buffer_completed() {
-	if (!thread || _seq_buffer_queue.size() == DE_BRUIJN_BUFFER_SIZE) {
+void DeBruijnSequencer::wait_for_buffer_completed()
+{
+	if (!thread || _seq_buffer_queue.size() == DE_BRUIJN_BUFFER_SIZE)
+	{
 		return;
 	}
 
@@ -89,7 +90,8 @@ void DeBruijnSequencer::wait_for_buffer_completed() {
 	chBSemReset(&_bsem, false);
 };
 
-void DeBruijnSequencer::signal_buffer_completed() {
+void DeBruijnSequencer::signal_buffer_completed()
+{
 	chBSemSignal(&_bsem);
 }
 
@@ -98,7 +100,7 @@ uint64_t DeBruijnSequencer::init(uint8_t wordlength)
 	n = wordlength;
 
 	// calculate new length
-	_target_length = pow(k, n) + (n - 1);
+	_target_length = pow((uint64_t)k, (uint64_t)n) + ((uint64_t)n - 1);
 
 	// fill the var `a` with 0s
 	for (uint8_t i = 0; i < sizeof(a); i++)
@@ -136,6 +138,9 @@ void DeBruijnSequencer::run()
 
 		_seq_buffer_queue.push_back(waveform_cache[i % _generated_length]);
 		_generated_length++;
+
+		// lets yield the thread so we can share the processor with others with the same priority
+		chThdYield();
 	}
 
 	signal_buffer_completed();
@@ -149,18 +154,28 @@ void DeBruijnSequencer::db(uint8_t t, uint8_t p)
 	if (t > n)
 	{
 		if (n % p == 0)
-			for (uint32_t j = 1; j <= p; j++)
+		{
+			for (uint32_t i = 1; i <= p; i++)
 			{
 				if (flow_control())
 					return;
 
-				// Generate bit (a[j])
+				// Generate bit (a[i])
 				if (waveform_cache.size() < DE_BRUIJN_BUFFER_SIZE)
-					waveform_cache.push_back(a[j]);
+				{
+					waveform_cache.push_back(a[i]);
 
-				_seq_buffer_queue.push_back(a[j]);
+					if (waveform_cache.size() == DE_BRUIJN_BUFFER_SIZE)
+						signal_buffer_completed();
+				}
+
+				_seq_buffer_queue.push_back(a[i]);
 				_generated_length++;
 			}
+		}
+
+		// lets yield the thread so we can share the processor with others with the same priority
+		chThdYield();
 
 		return;
 	}
@@ -170,29 +185,24 @@ void DeBruijnSequencer::db(uint8_t t, uint8_t p)
 
 	a[t] = a[t - p];
 	db(t + 1, p);
-	for (uint8_t j = a[t - p] + 1; j < k; j++)
+	for (uint8_t i = a[t - p] + 1; i < k; i++)
 	{
-
 		if (chThdShouldTerminate())
 			return;
 
-		a[t] = j;
+		a[t] = i;
 		db(t + 1, t);
 	}
 };
 
 bool DeBruijnSequencer::flow_control()
 {
-	if (_seq_buffer_queue.size() == DE_BRUIJN_BUFFER_SIZE) {
-		signal_buffer_completed();
-	}
-
 	// if we've reached our target size, lets wait a bit until it gets consumed
-	while (_seq_buffer_queue.size() == DE_BRUIJN_BUFFER_SIZE)
+	while (_seq_buffer_queue.size() >= DE_BRUIJN_BUFFER_SIZE)
 	{
 		// suspend thread with a timeout (200 cycles)
 		chSysLock();
-		chSchGoSleepTimeoutS(THD_STATE_SUSPENDED, 500);
+		chSchGoSleepTimeoutS(THD_STATE_SUSPENDED, 200);
 		chSysUnlock();
 
 		if (chThdShouldTerminate())
@@ -204,22 +214,27 @@ bool DeBruijnSequencer::flow_control()
 
 bool DeBruijnSequencer::read_bit()
 {
+	// in case the buffer queue is lowert than the buffer size and the thread is suspended,
+	// add the thread to the ready queue on chibios
+	if (thread->p_state == THD_STATE_SUSPENDED && _seq_buffer_queue.size() < DE_BRUIJN_BUFFER_SIZE)
+	{
+		chSysLock();
+		chSchReadyI(thread);
+		chSysUnlock();
+	}
 
-	// resume but only if it strictly necessary
-	// if (_seq_buffer_queue.empty())
-	// {
-	// 	chSchReadyI(thread);
-
-		// if we were unable to fill more, always return false
-		if (_seq_buffer_queue.empty())
-		{
-			return false;
-		}
-	// }
+	// this shouldn't happen, but in case the buffer is empty, lets just return false
+	// TODO: we might need to unsuspend the thread
+	if (_seq_buffer_queue.empty())
+		return false;
 
 	// read and delete the first entry from the _seq_buffer_queue
 	bool cur_bit = _seq_buffer_queue.front();
 	_seq_buffer_queue.pop_front();
 	_consumed_length++;
+
+	// lets yield the thread so we can share the processor with others with the same priority
+	chThdYield();
+
 	return cur_bit;
 };

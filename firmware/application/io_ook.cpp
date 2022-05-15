@@ -125,6 +125,7 @@ Result<uint64_t, Error> OOKFrameReader::read(void *const bufferp, const uint64_t
 				}
 			}
 
+			bytes_read += 4;
 			bread += 4;
 		}
 	}
@@ -136,8 +137,7 @@ Result<uint64_t, Error> OOKFrameReader::read(void *const bufferp, const uint64_t
 
 uint64_t OOKDebruijnReader::length()
 {
-	// return 2048;
-	return sequencer->length() / 8 * fragments_cursor.total;
+	return (sequencer->length() * (uint64_t)on_symbol_fragments->size()) / 8;
 };
 
 void OOKDebruijnReader::reset()
@@ -183,12 +183,15 @@ Result<uint64_t, Error> OOKDebruijnReader::read(void *const bufferp, const uint6
 					if (fragments_cursor.is_done())
 					{
 						// TODO in case the debruijn is complete, lets wrap it up, otherwise, read next bit
-						// read_type = sequencer->consumed() ? OOK_DEBRUIJN_COMPLETED : OOK_DEBRUIJN_READING_BIT;
-						read_type = false ? OOK_DEBRUIJN_COMPLETED : OOK_DEBRUIJN_READING_BIT;
+						read_type = sequencer->consumed() ? OOK_DEBRUIJN_COMPLETED : OOK_DEBRUIJN_READING_BIT;
+
+						// DEBUG: used to detect delays in between the this reader, the de bruijn sequencer and the stream reader thread
+						// read_type = bytes_read >= 2048 ? OOK_DEBRUIJN_COMPLETED : OOK_DEBRUIJN_READING_BIT;
 					}
 				}
 			}
 
+			bytes_read += 4;
 			bread += 4;
 		}
 	}

@@ -27,7 +27,7 @@
 #ifndef __DE_BRUIJN_H__
 #define __DE_BRUIJN_H__
 
-const uint8_t DE_BRUIJN_BUFFER_SIZE = 32;
+const uint8_t DE_BRUIJN_BUFFER_SIZE = 64;
 
 class DeBruijnSequencer
 {
@@ -46,6 +46,7 @@ public:
 	bool consumed();
 
 	void wait_for_buffer_completed();
+	void thread_stop();
 	bool thread_ended();
 	uint64_t length();
 
@@ -64,14 +65,14 @@ private:
 	// sequence fifo buffer, used by the generator and the consumer as this buffer has
 	// a fixed-length. Using deque as std fifo ends up using it anyway
 	std::deque<bool> _seq_buffer_queue{};
-	
+
 	// buffer semaphore
 	void signal_buffer_completed();
 	BinarySemaphore _bsem{};
 
 	// length related
-	uint32_t _consumed_length{0};  // count the amount of consumed chars (bits)
-	uint32_t _generated_length{0}; // count the amount of generated chars (bits)
+	uint64_t _consumed_length{0};  // count the amount of consumed chars (bits)
+	uint64_t _generated_length{0}; // count the amount of generated chars (bits)
 	uint64_t _target_length{0};	   // counts the target amoung of generated chars
 
 	// debruijn recursive function
@@ -80,12 +81,10 @@ private:
 
 	// sequencer thread
 	Thread *thread{nullptr};
-	void thread_stop();
 	void thread_start();
 	static msg_t static_fn(void *arg);
 	void run();
 	bool flow_control();
-
 };
 
 #endif /*__DE_BRUIJN_H__*/

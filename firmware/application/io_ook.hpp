@@ -95,6 +95,8 @@ public:
 	cursor fragments_cursor{1};
 
 private:
+	uint64_t bytes_read{0};
+
 	// void change_read_type(OOKDebruijnReaderReadType rt);
 	OOKDebruijnReaderReadType read_type = OOK_DEBRUIJN_READING_BIT;
 };
