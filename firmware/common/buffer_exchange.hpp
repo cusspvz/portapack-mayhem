@@ -44,15 +44,14 @@ public:
 	{
 		return fifo_buffers_for_application->is_empty();
 	}
+	bool full() const
+	{
+		return fifo_buffers_for_application->is_full();
+	}
 
 	StreamBuffer *get()
 	{
 		return get(fifo_buffers_for_application);
-	}
-
-	StreamBuffer *get_prefill()
-	{
-		return get_prefill(fifo_buffers_for_application);
 	}
 
 	bool put(StreamBuffer *const p)

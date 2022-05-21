@@ -116,7 +116,7 @@ uint32_t OOKTxProcessor::fill_buffer()
 void OOKTxProcessor::done()
 {
 	// Transmission is now completed
-	txprogress_message.progress = 100;
+	txprogress_message.progress = bytes_read;
 	txprogress_message.done = true;
 	shared_memory.application_queue.push(txprogress_message);
 
