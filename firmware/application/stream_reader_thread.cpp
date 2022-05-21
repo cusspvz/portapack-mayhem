@@ -75,28 +75,58 @@ msg_t StreamReaderThread::static_fn(void *arg)
 
 uint32_t StreamReaderThread::run()
 {
-	bool prefilled_signal = false;
 	BasebandTransmit replay{&config};
 	BufferExchange buffers{&config};
+
+	StreamBuffer *prefill_buffer{nullptr};
 
 	// Wait for FIFOs to be allocated in baseband
 	while (!ready_sig)
 	{
-
 		chSysLock();
 		chSchGoSleepTimeoutS(THD_STATE_SUSPENDED, 100);
 		chSysUnlock();
-		// TODO: consider a thread yield
 	};
+
+	// While empty buffers fifo is not empty...
+	while (!buffers.empty())
+	{
+		if (chThdShouldTerminate())
+			break;
+
+		prefill_buffer = buffers.get_prefill();
+
+		if (prefill_buffer == nullptr)
+		{
+			buffers.put_app(prefill_buffer);
+		}
+		else
+		{
+			size_t blocks = config.read_size / 512;
+			// uint64_t total_read = 0;
+
+			for (size_t c = 0; c < blocks; c++)
+			{
+				auto read_result = reader->read(&((uint8_t *)prefill_buffer->data())[c * 512], 512);
+				if (read_result.is_error())
+				{
+					return READ_ERROR;
+				}
+
+				// total_read += read_result.value();
+			}
+
+			prefill_buffer->set_size(config.read_size);
+			// prefill_buffer->set_size(total_read);
+
+			buffers.put(prefill_buffer);
+		}
+	};
+
+	baseband::set_fifo_data(nullptr);
 
 	while (!chThdShouldTerminate())
 	{
-		if (!prefilled_signal && buffers.empty())
-		{
-			baseband::set_fifo_data(nullptr);
-			prefilled_signal = true;
-		}
-
 		auto buffer = buffers.get();
 
 		if (chThdShouldTerminate())
@@ -114,10 +144,14 @@ uint32_t StreamReaderThread::run()
 		else
 		{
 			if (read_result.value() == 0)
+			{
 				return END_OF_STREAM;
+			}
 		}
 
 		buffer->set_size(buffer->capacity());
+		// buffer->set_size(read_result.value());
+
 		buffers.put(buffer);
 	}
 

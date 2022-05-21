@@ -90,28 +90,21 @@ Result<uint64_t, Error> OOKFrameReader::read(void *const bufferp, const uint64_t
 			for (uint8_t bit = 0; bit < 32; bit++)
 			{
 
-				switch (read_type)
-				{
-				case OOK_READER_COMPLETED:
-					continue;
+				if (read_type == OOK_READER_COMPLETED)
+					break;
 
-				case OOK_READER_READING_PAUSES:
+				if (read_type == OOK_READER_READING_PAUSES)
+				{
 					// pause doesnt save anything in the bit
 					pauses_cursor.index++;
 
 					// if pause is completed, jump to the next fragment
 					if (pauses_cursor.is_done())
 						change_read_type(OOK_READER_READING_FRAGMENT);
-					break;
+				}
 
-				case OOK_READER_READING_FRAGMENT:
-
-					// if (fragments_cursor.index == 0 && on_before_frame_fragment_usage)
-					// {
-					// 	// Allow the app to generate the fragment on demand, or at a single shot
-					// 	on_before_frame_fragment_usage(*this);
-					// };
-
+				if (read_type == OOK_READER_READING_FRAGMENT)
+				{
 					rbuff[rbi].set(bit, frame_fragments->at(fragments_cursor.index));
 
 					fragments_cursor.index++;
@@ -120,8 +113,6 @@ Result<uint64_t, Error> OOKFrameReader::read(void *const bufferp, const uint64_t
 						repetitions_cursor.index++;
 						change_read_type(OOK_READER_READING_PAUSES);
 					}
-
-					break;
 				}
 			}
 
