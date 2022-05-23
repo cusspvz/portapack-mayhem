@@ -96,8 +96,8 @@ public:
 	}
 
 private:
-	// StreamReceiveConfig* const config_capture;
-	// StreamTransmitConfig* const config_replay;
+	// StreamReceiveConfig* const config_receive;
+	// StreamTransmitConfig* const config_transmit;
 	FIFO<StreamBuffer *> *fifo_buffers_for_baseband{nullptr};
 	FIFO<StreamBuffer *> *fifo_buffers_for_application{nullptr};
 	Thread *thread{nullptr};
@@ -105,8 +105,8 @@ private:
 
 	enum
 	{
-		CAPTURE,
-		REPLAY
+		RECEIVE,
+		TRANSMIT
 	} direction{};
 
 	void check_fifo_isr()

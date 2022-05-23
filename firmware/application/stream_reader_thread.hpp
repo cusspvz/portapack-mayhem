@@ -60,8 +60,6 @@ public:
 		TERMINATED
 	};
 
-	void emit_thread_done_message(const uint32_t return_code);
-
 private:
 	StreamTransmitConfig config;
 	std::unique_ptr<stream::Reader> reader;
