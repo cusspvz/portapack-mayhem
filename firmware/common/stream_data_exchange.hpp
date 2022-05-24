@@ -89,7 +89,7 @@ public:
                 return 0;
         }
 
-        return _buffer_from_baseband_to_application.read(p, count);
+        return _buffer_from_baseband_to_application->read(p, count);
     }
 
     size_t write(const void *p, const size_t count)
@@ -113,7 +113,7 @@ public:
     void setup_baseband_stream()
     {
         // push an event to the baseband to setup the stream
-        baseband::set_stream_data_exchange(&StreamDataExchangeConfig{
+        baseband::set_stream_data_exchange(new StreamDataExchangeConfig{
             .direction = _direction,
             .buffer_from_baseband_to_application = _buffer_from_baseband_to_application,
             .buffer_from_application_to_baseband = _buffer_from_application_to_baseband});
