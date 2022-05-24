@@ -25,7 +25,6 @@
 #include "sine_table_int8.hpp"
 #include "event_m4.hpp"
 #include "utility.hpp"
-#include "stream_data_exchange.hpp"
 #include <cstdint>
 
 void OOKTxProcessor::execute(const buffer_c8_t &buffer)
@@ -105,9 +104,9 @@ uint32_t OOKTxProcessor::fill_buffer()
 {
 	uint32_t bytes_streamed = 0;
 
-	if (stream)
+	if (streamDataExchange)
 	{
-		bytes_streamed = stream->read(&bit_buffer, sizeof(bit_buffer));
+		bytes_streamed = streamDataExchange->read(&bit_buffer, sizeof(bit_buffer));
 		bytes_read += bytes_streamed;
 
 		// setup the maximum amount of bits in the bit_cursor
@@ -171,10 +170,10 @@ void OOKTxProcessor::stream_config(const StreamDataExchangeMessage *message)
 	{
 		// I assume that the logic on top will handle the reset piece, so just resetting the pointer
 		// so the stream continues to read the buffer
-		stream = nullptr;
+		streamDataExchange = nullptr;
 	}
 
-	stream = std::make_unique<StreamDataExchange>(message->config);
+	streamDataExchange = new StreamDataExchange(message->config);
 
 	fill_buffer();
 	bit_sampling.index = 0;

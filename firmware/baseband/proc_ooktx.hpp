@@ -26,7 +26,7 @@
 #include "baseband_processor.hpp"
 #include "baseband_thread.hpp"
 
-#include "stream_output.hpp"
+#include "stream_data_exchange.hpp"
 #include "cursor.hpp"
 
 #include <array>
@@ -56,8 +56,8 @@ private:
 
 	// streaming approach
 	uint32_t bytes_read{0};
-	std::unique_ptr<StreamOutput> stream{};
-	std::bitset<OOK_BIT_BUFFER_SIZE> bit_buffer;
+	StreamDataExchange *streamDataExchange{nullptr};
+	std::bitset<OOK_BIT_BUFFER_SIZE> bit_buffer{0};
 	cursor bit_cursor{};
 	bool current_bit = false;
 

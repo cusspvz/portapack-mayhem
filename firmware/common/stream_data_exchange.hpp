@@ -36,20 +36,16 @@ public:
         if (direction == STREAM_EXCHANGE_DUPLEX)
         {
             // use the shared data to setup the circular buffers for duplex comms
-            auto buffer_from_baseband_to_application = CircularBuffer(&(shared_memory.bb_data.data[0]), 256);
-            _buffer_from_baseband_to_application = &buffer_from_baseband_to_application;
-            auto buffer_from_application_to_baseband = CircularBuffer(&(shared_memory.bb_data.data[0]), 256);
-            _buffer_from_application_to_baseband = &buffer_from_application_to_baseband;
+            _buffer_from_baseband_to_application = new CircularBuffer(&(shared_memory.bb_data.data[0]), 256);
+            _buffer_from_application_to_baseband = new CircularBuffer(&(shared_memory.bb_data.data[256]), 256);
         }
         if (direction == STREAM_EXCHANGE_APP_TO_BB)
         {
-            auto buffer_from_application_to_baseband = CircularBuffer(&(shared_memory.bb_data.data[0]), 512);
-            _buffer_from_application_to_baseband = &buffer_from_application_to_baseband;
+            _buffer_from_application_to_baseband = new CircularBuffer(&(shared_memory.bb_data.data[0]), 512);
         }
         else if (direction == STREAM_EXCHANGE_BB_TO_APP)
         {
-            auto buffer_from_baseband_to_application = CircularBuffer(&(shared_memory.bb_data.data[0]), 512);
-            _buffer_from_baseband_to_application = &buffer_from_baseband_to_application;
+            _buffer_from_baseband_to_application = new CircularBuffer(&(shared_memory.bb_data.data[0]), 512);
         }
 
 #if defined(LPC43XX_M0)
@@ -66,7 +62,10 @@ public:
 #endif
     }
 
-    ~StreamDataExchange();
+    ~StreamDataExchange(){
+        // do stuff to remove
+        // kill threads?
+    };
 
     StreamDataExchange(const StreamDataExchange &) = delete;
     StreamDataExchange(StreamDataExchange &&) = delete;
