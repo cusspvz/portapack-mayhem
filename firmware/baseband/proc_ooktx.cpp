@@ -25,6 +25,7 @@
 #include "sine_table_int8.hpp"
 #include "event_m4.hpp"
 #include "utility.hpp"
+#include "stream_data_exchange.hpp"
 #include <cstdint>
 
 void OOKTxProcessor::execute(const buffer_c8_t &buffer)
@@ -147,11 +148,11 @@ void OOKTxProcessor::on_message(const Message *const message)
 	switch (message->id)
 	{
 	case Message::ID::OOKConfigure:
-		ook_config(*reinterpret_cast<const OOKConfigureMessage *>(message));
+		ook_config(reinterpret_cast<const OOKConfigureMessage *>(message));
 		break;
 
-	case Message::ID::StreamDataExchange:
-		stream_config(*reinterpret_cast<const StreamDataExchangeMessage *>(message));
+	case Message::ID::StreamDataExchangeConfigure:
+		stream_config(reinterpret_cast<const StreamDataExchangeMessage *>(message));
 		break;
 
 	default:
@@ -159,21 +160,21 @@ void OOKTxProcessor::on_message(const Message *const message)
 	}
 }
 
-void OOKTxProcessor::ook_config(const OOKConfigureMessage &message)
+void OOKTxProcessor::ook_config(const OOKConfigureMessage *message)
 {
-	bit_sampling.total = baseband_fs / (1000000 / message.pulses_per_bit);
+	bit_sampling.total = baseband_fs / (1000000 / message->pulses_per_bit);
 	reset();
 };
-void OOKTxProcessor::stream_config(const StreamDataExchangeMessage &message)
+void OOKTxProcessor::stream_config(const StreamDataExchangeMessage *message)
 {
-	if (!message.config)
+	if (!message->config)
 	{
 		// I assume that the logic on top will handle the reset piece, so just resetting the pointer
 		// so the stream continues to read the buffer
-		stream.reset();
+		stream = nullptr;
 	}
 
-	stream = std::make_unique<StreamDataExchange>(message.config);
+	stream = std::make_unique<StreamDataExchange>(message->config);
 
 	fill_buffer();
 	bit_sampling.index = 0;

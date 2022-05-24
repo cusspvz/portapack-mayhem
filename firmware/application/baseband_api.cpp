@@ -210,10 +210,10 @@ namespace baseband
 		send_message(&message);
 	}
 
-	void set_stream_data_exchange(StreamDataExchangeConfig *const stream_data_exchange_config)
+	void set_stream_data_exchange(StreamDataExchangeConfig *const config)
 	{
 		const StreamDataExchangeMessage message{
-			stream_data_exchange_config};
+			config};
 		send_message(&message);
 	}
 

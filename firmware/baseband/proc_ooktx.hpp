@@ -65,8 +65,8 @@ private:
 	cursor bit_sampling{};
 	uint32_t phase{0}, sphase{0};
 
-	void ook_config(const OOKConfigureMessage &message);
-	void stream_config(const StreamDataExchangeMessage &message);
+	void ook_config(const OOKConfigureMessage *message);
+	void stream_config(const StreamDataExchangeMessage *message);
 
 	TXProgressMessage txprogress_message{};
 	RequestSignalMessage sig_message{RequestSignalMessage::Signal::FillRequest};

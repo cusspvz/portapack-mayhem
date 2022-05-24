@@ -22,6 +22,9 @@
 #include <cstring>
 #include "portapack_shared_memory.hpp"
 
+#include "lpc43xx_cpp.hpp"
+using namespace lpc43xx;
+
 class StreamDataExchange
 {
 public:
@@ -33,25 +36,30 @@ public:
         if (direction == STREAM_EXCHANGE_DUPLEX)
         {
             // use the shared data to setup the circular buffers for duplex comms
-            _buffer_from_baseband_to_application = {&(shared_memory.bb_data.data[0]), 256};
-            _buffer_from_application_to_baseband = {&(shared_memory.bb_data.data[0]), 256};
+            auto buffer_from_baseband_to_application = CircularBuffer(&(shared_memory.bb_data.data[0]), 256);
+            _buffer_from_baseband_to_application = &buffer_from_baseband_to_application;
+            auto buffer_from_application_to_baseband = CircularBuffer(&(shared_memory.bb_data.data[0]), 256);
+            _buffer_from_application_to_baseband = &buffer_from_application_to_baseband;
         }
         if (direction == STREAM_EXCHANGE_APP_TO_BB)
         {
-            _buffer_from_application_to_baseband = {&(shared_memory.bb_data.data[0]), 512};
+            auto buffer_from_application_to_baseband = CircularBuffer(&(shared_memory.bb_data.data[0]), 512);
+            _buffer_from_application_to_baseband = &buffer_from_application_to_baseband;
         }
         else if (direction == STREAM_EXCHANGE_BB_TO_APP)
         {
-            _buffer_from_baseband_to_application = {&(shared_memory.bb_data.data[0]), 512};
+            auto buffer_from_baseband_to_application = CircularBuffer(&(shared_memory.bb_data.data[0]), 512);
+            _buffer_from_baseband_to_application = &buffer_from_baseband_to_application;
         }
 
 #if defined(LPC43XX_M0)
         obj = this;
 #endif
     }
-    StreamCircularBuffer(StreamDataExchangeConfig *const config) : _direction{config.direction},
-                                                                   _buffer_from_baseband_to_application{config.buffer_from_baseband_to_application},
-                                                                   _buffer_from_application_to_baseband{config.buffer_from_application_to_baseband}
+
+    StreamDataExchange(StreamDataExchangeConfig *const config) : _direction{config->direction},
+                                                                 _buffer_from_baseband_to_application{config->buffer_from_baseband_to_application},
+                                                                 _buffer_from_application_to_baseband{config->buffer_from_application_to_baseband}
     {
 #if defined(LPC43XX_M0)
         obj = this;
@@ -74,7 +82,7 @@ public:
             return 0;
 
         // suspend in case the target buffer is full
-        while (_buffer_from_application_to_baseband.is_empty())
+        while (_buffer_from_application_to_baseband->is_empty())
         {
             wait_for_isr_event();
 
@@ -92,7 +100,7 @@ public:
             return 0;
 
         // suspend in case the target buffer is full
-        while (_buffer_from_application_to_baseband.is_full())
+        while (_buffer_from_application_to_baseband->is_full())
         {
             wait_for_isr_event();
 
@@ -100,7 +108,7 @@ public:
                 return 0;
         }
 
-        return _buffer_from_application_to_baseband.write(p, count);
+        return _buffer_from_application_to_baseband->write(p, count);
     }
 
     void setup_baseband_stream()
@@ -154,10 +162,10 @@ public:
             return 0;
 
         // signal the application from the baseband that we need more data
-        if (!_buffer_from_application_to_baseband.is_full())
+        if (!_buffer_from_application_to_baseband->is_full())
             creg::m4txevent::assert_event();
 
-        return _buffer_from_application_to_baseband.read(p, count);
+        return _buffer_from_application_to_baseband->read(p, count);
     }
 
     size_t write(const void *p, const size_t count)
@@ -167,10 +175,10 @@ public:
             return 0;
 
         // signal the application from the baseband that we need it to read the data
-        if (!_buffer_from_baseband_to_application.is_empty())
+        if (!_buffer_from_baseband_to_application->is_empty())
             creg::m4txevent::assert_event();
 
-        return _buffer_from_baseband_to_application.write(p, count);
+        return _buffer_from_baseband_to_application->write(p, count);
     }
 #endif
 

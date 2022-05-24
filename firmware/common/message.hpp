@@ -112,7 +112,7 @@ public:
 		AudioSpectrum = 52,
 		APRSPacket = 53,
 		APRSRxConfigure = 54,
-		StreamDataExchange = 55,
+		StreamDataExchangeConfigure = 55,
 		MAX
 	};
 
@@ -589,7 +589,7 @@ class StreamDataExchangeMessage : public Message
 {
 public:
 	constexpr StreamDataExchangeMessage(
-		StreamDataExchangeConfig *const config) : Message{ID::StreamDataExchange},
+		StreamDataExchangeConfig *const config) : Message{ID::StreamDataExchangeConfigure},
 												  config{config}
 	{
 	}
