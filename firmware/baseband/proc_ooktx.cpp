@@ -108,6 +108,9 @@ uint32_t OOKTxProcessor::fill_buffer()
 	{
 		bytes_streamed = stream->read(&bit_buffer, sizeof(bit_buffer));
 		bytes_read += bytes_streamed;
+
+		// setup the maximum amount of bits in the bit_cursor
+		bit_cursor.total = bytes_streamed * 8;
 	}
 
 	return bytes_streamed;
@@ -147,16 +150,8 @@ void OOKTxProcessor::on_message(const Message *const message)
 		ook_config(*reinterpret_cast<const OOKConfigureMessage *>(message));
 		break;
 
-	case Message::ID::StreamTransmitConfig:
-		stream_config(*reinterpret_cast<const StreamTransmitConfigMessage *>(message));
-		break;
-
-	// App has prefilled the buffers, we're ready to go now
-	case Message::ID::FIFOData:
-		fill_buffer();
-		bit_sampling.index = 0;
-		bit_cursor.index = 0;
-		configured = true;
+	case Message::ID::StreamDataExchange:
+		stream_config(*reinterpret_cast<const StreamDataExchangeMessage *>(message));
 		break;
 
 	default:
@@ -169,21 +164,21 @@ void OOKTxProcessor::ook_config(const OOKConfigureMessage &message)
 	bit_sampling.total = baseband_fs / (1000000 / message.pulses_per_bit);
 	reset();
 };
-void OOKTxProcessor::stream_config(const StreamTransmitConfigMessage &message)
+void OOKTxProcessor::stream_config(const StreamDataExchangeMessage &message)
 {
-	if (message.config)
-	{
-		stream = std::make_unique<StreamOutput>(message.config);
-
-		// Tell application that the buffers and FIFO pointers are ready, prefill
-		shared_memory.application_queue.push(sig_message);
-	}
-	else
+	if (!message.config)
 	{
 		// I assume that the logic on top will handle the reset piece, so just resetting the pointer
 		// so the stream continues to read the buffer
 		stream.reset();
 	}
+
+	stream = std::make_unique<StreamDataExchange>(message.config);
+
+	fill_buffer();
+	bit_sampling.index = 0;
+	bit_cursor.index = 0;
+	configured = true;
 };
 
 int main()

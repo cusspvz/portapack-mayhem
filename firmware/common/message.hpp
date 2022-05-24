@@ -42,6 +42,7 @@
 #include "jammer.hpp"
 #include "dsp_fir_taps.hpp"
 #include "dsp_iir.hpp"
+#include "circular_buffer.hpp"
 #include "fifo.hpp"
 
 #include "utility.hpp"
@@ -111,6 +112,7 @@ public:
 		AudioSpectrum = 52,
 		APRSPacket = 53,
 		APRSRxConfigure = 54,
+		StreamDataExchange = 55,
 		MAX
 	};
 
@@ -566,6 +568,33 @@ public:
 	const fir_taps_complex<64> channel_filter;
 	const Modulation modulation;
 	const iir_biquad_config_t audio_hpf_config;
+};
+
+enum stream_exchange_direction
+{
+	STREAM_EXCHANGE_APP_TO_BB = 1,
+	STREAM_EXCHANGE_BB_TO_APP = 2,
+	STREAM_EXCHANGE_DUPLEX = 0
+};
+
+struct StreamDataExchangeConfig
+{
+	stream_exchange_direction direction{STREAM_EXCHANGE_DUPLEX};
+
+	// buffer to store data in and out
+	CircularBuffer *buffer_from_baseband_to_application{nullptr};
+	CircularBuffer *buffer_from_application_to_baseband{nullptr};
+};
+class StreamDataExchangeMessage : public Message
+{
+public:
+	constexpr StreamDataExchangeMessage(
+		StreamDataExchangeConfig *const config) : Message{ID::StreamDataExchange},
+												  config{config}
+	{
+	}
+
+	StreamDataExchangeConfig *const config;
 };
 
 // TODO: Put this somewhere else, or at least the implementation part.

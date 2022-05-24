@@ -210,6 +210,13 @@ namespace baseband
 		send_message(&message);
 	}
 
+	void set_stream_data_exchange(StreamDataExchangeConfig *const stream_data_exchange_config)
+	{
+		const StreamDataExchangeMessage message{
+			stream_data_exchange_config};
+		send_message(&message);
+	}
+
 	void set_pitch_rssi(int32_t avg, bool enabled)
 	{
 		const PitchRSSIConfigureMessage message{

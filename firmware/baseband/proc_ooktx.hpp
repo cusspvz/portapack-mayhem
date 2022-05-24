@@ -32,7 +32,7 @@
 #include <array>
 #include <memory>
 
-const uint8_t OOK_BIT_BUFFER_SIZE = 128;
+const uint8_t OOK_BIT_BUFFER_SIZE = 32;
 
 class OOKTxProcessor : public BasebandProcessor
 {
@@ -66,7 +66,7 @@ private:
 	uint32_t phase{0}, sphase{0};
 
 	void ook_config(const OOKConfigureMessage &message);
-	void stream_config(const StreamTransmitConfigMessage &message);
+	void stream_config(const StreamDataExchangeMessage &message);
 
 	TXProgressMessage txprogress_message{};
 	RequestSignalMessage sig_message{RequestSignalMessage::Signal::FillRequest};
