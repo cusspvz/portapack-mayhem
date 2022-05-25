@@ -29,7 +29,7 @@
 #include "encoders.hpp"
 #include "io_file.hpp"
 #include "io_ook.hpp"
-#include "stream_reader_thread.hpp"
+#include "stream_data_exchange.hpp"
 
 using namespace encoders;
 
@@ -300,9 +300,9 @@ namespace ui
 		std::string err{""};
 
 		// TX related
-		std::unique_ptr<StreamReaderThread>
-			stream_reader_thread{};
-		void handle_stream_reader_thread_done(const uint32_t return_code);
+		std::unique_ptr<StreamReader>
+			stream_reader{};
+		void handle_stream_reader_done(const uint32_t return_code);
 		const size_t read_size{2048};
 		const size_t buffer_count{3};
 
@@ -384,7 +384,7 @@ namespace ui
 			[this](const Message *const p)
 			{
 				const auto message = *reinterpret_cast<const StreamReaderThreadDoneMessage *>(p);
-				this->handle_stream_reader_thread_done(message.return_code);
+				this->handle_stream_reader_done(message.return_code);
 			}};
 
 		// handle tx progress

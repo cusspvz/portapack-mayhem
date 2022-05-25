@@ -547,8 +547,8 @@ namespace ui
 
 	OOKTxView::~OOKTxView()
 	{
-		if (stream_reader_thread)
-			stream_reader_thread.reset();
+		if (stream_reader)
+			stream_reader.reset();
 
 		transmitter_model.disable();
 		baseband::shutdown();
@@ -595,10 +595,10 @@ namespace ui
 	}
 
 	void
-	OOKTxView::handle_stream_reader_thread_done(const uint32_t return_code)
+	OOKTxView::handle_stream_reader_done(const uint32_t return_code)
 	{
-		// if (return_code == StreamReaderThread::END_OF_STREAM)
-		if (return_code == StreamReaderThread::READ_ERROR)
+		// if (return_code == StreamReader::END_OF_STREAM)
+		if (return_code == StreamReader::READ_ERROR)
 			err = "Streaming error";
 
 		stop_tx();
@@ -776,9 +776,8 @@ namespace ui
 
 		baseband::set_ook_data(pulses_per_bit);
 
-		stream_reader_thread = std::make_unique<StreamReaderThread>(
-			std::move(reader),
-			read_size, buffer_count);
+		stream_reader = std::make_unique<StreamReader>(
+			std::move(reader));
 
 		tx_view.set_transmitting(true);
 		transmitter_model.enable();
@@ -794,8 +793,8 @@ namespace ui
 
 	void OOKTxView::stop_tx()
 	{
-		if (stream_reader_thread)
-			stream_reader_thread.reset();
+		if (stream_reader)
+			stream_reader.reset();
 
 		transmitter_model.disable();
 		tx_mode = TX_MODE_IDLE;
