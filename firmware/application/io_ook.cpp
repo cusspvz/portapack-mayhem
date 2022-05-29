@@ -24,10 +24,10 @@
 
 // OOKFrameReader
 
-uint64_t OOKFrameReader::length()
+size_t OOKFrameReader::length()
 {
-	uint64_t frame_length = frame_fragments->size() * repetitions_cursor.total / 8;
-	uint64_t pauses_length = pauses_cursor.total * (repetitions_cursor.total - (!completition_requires_pause ? 1 : 0)) / 8;
+	size_t frame_length = frame_fragments->size() * repetitions_cursor.total / 8;
+	size_t pauses_length = pauses_cursor.total * (repetitions_cursor.total - (!completition_requires_pause ? 1 : 0)) / 8;
 
 	return frame_length + pauses_length;
 };
@@ -75,13 +75,13 @@ void OOKFrameReader::change_read_type(OOKFrameReaderReadType rt)
 	read_type = rt;
 };
 
-Result<uint64_t, Error> OOKFrameReader::read(void *const bufferp, const uint64_t bsize)
+Result<size_t, Error> OOKFrameReader::read(void *const bufferp, const size_t bsize)
 {
-	uint64_t bread = 0;
+	size_t bread = 0;
 	std::bitset<32> *rbuff = (std::bitset<32> *)bufferp;
 
 	// start filling the buffer
-	for (uint64_t rbi = 0; rbi < bsize; rbi++)
+	for (size_t rbi = 0; rbi < bsize; rbi++)
 	{
 		rbuff[rbi].reset();
 
@@ -121,14 +121,14 @@ Result<uint64_t, Error> OOKFrameReader::read(void *const bufferp, const uint64_t
 		}
 	}
 
-	return Result<uint64_t, Error>(bread);
+	return Result<size_t, Error>(bread);
 }
 
 // OOKDebruijnReader
 
-uint64_t OOKDebruijnReader::length()
+size_t OOKDebruijnReader::length()
 {
-	return (sequencer->length() * (uint64_t)on_symbol_fragments->size()) / 8;
+	return (sequencer->length() * (size_t)on_symbol_fragments->size()) / 8;
 };
 
 void OOKDebruijnReader::reset()
@@ -137,13 +137,13 @@ void OOKDebruijnReader::reset()
 	fragments_cursor.start_over();
 };
 
-Result<uint64_t, Error> OOKDebruijnReader::read(void *const bufferp, const uint64_t bsize)
+Result<size_t, Error> OOKDebruijnReader::read(void *const bufferp, const size_t bsize)
 {
-	uint64_t bread = 0;
+	size_t bread = 0;
 	std::bitset<32> *rbuff = (std::bitset<32> *)bufferp;
 
 	// start filling the buffer
-	for (uint64_t rbi = 0; rbi < bsize; rbi++)
+	for (size_t rbi = 0; rbi < bsize; rbi++)
 	{
 		rbuff[rbi].reset();
 
@@ -187,5 +187,5 @@ Result<uint64_t, Error> OOKDebruijnReader::read(void *const bufferp, const uint6
 		}
 	}
 
-	return Result<uint64_t, Error>(bread);
+	return Result<size_t, Error>(bread);
 };

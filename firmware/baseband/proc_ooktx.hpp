@@ -39,8 +39,9 @@ class OOKTxProcessor : public BasebandProcessor
 public:
 	void execute(const buffer_c8_t &buffer) override;
 	void reset();
-	uint32_t fill_buffer();
 	void done();
+
+	size_t fill_buffer();
 
 	void on_message(const Message *const message) override;
 
@@ -52,11 +53,9 @@ private:
 
 	bool configured{false};
 	uint32_t samples_per_bit{0};
-	uint64_t max_bytes{0};
 
 	// streaming approach
-	uint32_t bytes_read{0};
-	StreamDataExchange *streamDataExchange{nullptr};
+	std::unique_ptr<StreamDataExchange> stream{nullptr};
 	std::bitset<OOK_BIT_BUFFER_SIZE> bit_buffer{0};
 	cursor bit_cursor{};
 	bool current_bit = false;

@@ -55,8 +55,8 @@ public:
 	OOKFrameReader &operator=(const OOKFrameReader &) = delete;
 	OOKFrameReader &operator=(OOKFrameReader &&) = delete;
 
-	Result<uint64_t, Error> read(void *const buffer, const uint64_t bsize) override;
-	uint64_t length();
+	Result<size_t, Error> read(void *const buffer, const size_t bsize) override;
+	size_t length();
 	void reset();
 
 	std::vector<bool> *frame_fragments{};
@@ -67,7 +67,7 @@ public:
 	cursor fragments_cursor{1};
 
 protected:
-	uint64_t bytes_read{0};
+	size_t bytes_read{0};
 
 private:
 	void change_read_type(OOKFrameReaderReadType rt);
@@ -83,8 +83,8 @@ public:
 	OOKDebruijnReader &operator=(const OOKDebruijnReader &) = delete;
 	OOKDebruijnReader &operator=(OOKDebruijnReader &&) = delete;
 
-	Result<uint64_t, Error> read(void *const buffer, const uint64_t bsize) override;
-	uint64_t length();
+	Result<size_t, Error> read(void *const buffer, const size_t bsize) override;
+	size_t length();
 	void reset();
 
 	bool cur_bit = false;
@@ -95,7 +95,7 @@ public:
 	cursor fragments_cursor{1};
 
 private:
-	uint64_t bytes_read{0};
+	size_t bytes_read{0};
 
 	// void change_read_type(OOKDebruijnReaderReadType rt);
 	OOKDebruijnReaderReadType read_type = OOK_DEBRUIJN_READING_BIT;

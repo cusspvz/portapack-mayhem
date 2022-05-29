@@ -33,7 +33,7 @@ class CircularBuffer
 	size_t _capacity;
 	size_t _write_head{0};
 	size_t _read_head{0};
-	bool _is_full{false};
+	size_t _size{0};
 
 public:
 	constexpr CircularBuffer(
@@ -48,7 +48,13 @@ public:
 	{
 		_read_head = 0;
 		_write_head = 0;
-		_is_full = false;
+		_size = 0;
+	}
+
+	void clear_data()
+	{
+		for (size_t i = 0; i < _capacity; i++)
+			_data[i] = 0;
 	}
 
 	void *data() const
@@ -63,80 +69,54 @@ public:
 
 	bool is_full() const
 	{
-		return _write_head == _read_head && _is_full;
+		return _capacity == _size;
 	}
 
 	bool is_empty() const
 	{
-		return _write_head == _read_head && !_is_full;
+		return _size == 0;
 	}
 
 	size_t used() const
 	{
-		if (is_empty())
-			return 0;
-
-		if (_write_head >= _read_head)
-			return _write_head - _read_head;
-		else
-			return _capacity - _read_head + _write_head;
+		return _size;
 	}
 
-	size_t available() const
+	size_t unused() const
 	{
-		return _is_full ? 0 : _capacity - used();
+		return _capacity - _size;
 	}
 
 	size_t write(const void *p, const size_t count)
 	{
-		if (_is_full)
-			return 0;
-
-		size_t copy_size = 0;
-
-		if (_write_head >= _read_head)
-			copy_size = std::min(_capacity - _write_head, count);
-		else
-			copy_size = std::min(_read_head - _write_head, count);
+		size_t copy_size = std::min(_capacity - _size, count);
 
 		if (copy_size == 0)
 			return 0;
 
 		memcpy(&_data[_write_head], p, copy_size);
 		_write_head += copy_size;
+		_size += copy_size;
 
 		if (_write_head == _capacity)
 			_write_head = 0;
-
-		if (used() == _capacity)
-			_is_full = true;
 
 		return copy_size;
 	}
 
 	size_t read(void *p, const size_t count)
 	{
-		if (is_empty())
-			return 0;
-
-		size_t copy_size = 0;
-
-		if (_read_head < _write_head)
-			copy_size = std::min(_write_head - _read_head, count);
-		else
-			copy_size = std::min(_capacity - _write_head, count);
+		size_t copy_size = std::min(_size, count);
 
 		if (copy_size == 0)
 			return 0;
 
 		memcpy(p, &_data[_read_head], copy_size);
 		_read_head += copy_size;
+		_size -= copy_size;
 
 		if (_read_head == _capacity)
 			_read_head = 0;
-
-		if (_is_full)
-			_is_full = false;
 
 		return copy_size;
 	}

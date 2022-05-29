@@ -252,8 +252,8 @@ static_assert(sizeof(FIL::err) == 1, "FatFs FIL::err size not expected.");
 class File
 {
 public:
-	using Size = uint64_t;
-	using Offset = uint64_t;
+	using Size = size_t;
+	using Offset = size_t;
 	using Timestamp = uint32_t;
 	using FsError = Error;
 
@@ -272,7 +272,7 @@ public:
 	Result<Size, FsError> read(void *const data, const Size bytes_to_read);
 	Result<Size, FsError> write(const void *const data, const Size bytes_to_write);
 
-	Result<Offset, FsError> seek(const uint64_t Offset);
+	Result<Offset, FsError> seek(const size_t Offset);
 	Timestamp created_date();
 	Size size();
 

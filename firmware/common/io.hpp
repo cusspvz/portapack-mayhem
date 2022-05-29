@@ -30,14 +30,14 @@ namespace stream
 	class Reader
 	{
 	public:
-		virtual Result<uint64_t, Error> read(void *const buffer, const uint64_t bytes) = 0;
+		virtual Result<size_t, Error> read(void *const buffer, const size_t bytes) = 0;
 		virtual ~Reader() = default;
 	};
 
 	class Writer
 	{
 	public:
-		virtual Result<uint64_t, Error> write(const void *const buffer, const uint64_t bytes) = 0;
+		virtual Result<size_t, Error> write(const void *const buffer, const size_t bytes) = 0;
 		virtual ~Writer() = default;
 	};
 

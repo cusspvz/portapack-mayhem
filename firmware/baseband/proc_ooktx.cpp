@@ -95,31 +95,31 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 	// inform UI about the progress if it still is confifured
 	if (configured)
 	{
-		txprogress_message.progress = bytes_read;
+		txprogress_message.progress = stream->bytes_read;
 		shared_memory.application_queue.push(txprogress_message);
 	}
 }
 
-uint32_t OOKTxProcessor::fill_buffer()
+size_t OOKTxProcessor::fill_buffer()
 {
-	uint32_t bytes_streamed = 0;
+	if (!(bool)stream)
+		return 0;
 
-	if (streamDataExchange)
-	{
-		bytes_streamed = streamDataExchange->read(&bit_buffer, sizeof(bit_buffer));
-		bytes_read += bytes_streamed;
+	auto read_size = stream->read(&bit_buffer, sizeof(bit_buffer));
 
-		// setup the maximum amount of bits in the bit_cursor
-		bit_cursor.total = bytes_streamed * 8;
-	}
+	if (read_size.is_error())
+		return 0;
 
-	return bytes_streamed;
+	// setup the maximum amount of bits in the bit_cursor
+	bit_cursor.total = read_size.value() * 8;
+
+	return read_size.value();
 }
 
 void OOKTxProcessor::done()
 {
 	// Transmission is now completed
-	txprogress_message.progress = bytes_read;
+	txprogress_message.progress = stream->bytes_read;
 	txprogress_message.done = true;
 	shared_memory.application_queue.push(txprogress_message);
 
@@ -133,7 +133,6 @@ void OOKTxProcessor::reset()
 	// clear buffer
 	bit_buffer.reset();
 
-	bytes_read = 0;
 	txprogress_message.progress = 0;
 	txprogress_message.done = false;
 
@@ -166,16 +165,24 @@ void OOKTxProcessor::ook_config(const OOKConfigureMessage *message)
 };
 void OOKTxProcessor::stream_config(const StreamDataExchangeMessage *message)
 {
-	if (!message->config)
+	if (!(bool)message->config)
 	{
 		// I assume that the logic on top will handle the reset piece, so just resetting the pointer
 		// so the stream continues to read the buffer
-		streamDataExchange = nullptr;
+		stream.reset();
+		return;
 	}
 
-	streamDataExchange = new StreamDataExchange(message->config);
+	// stream = std::make_unique<StreamDataExchange>(message->config);
 
-	fill_buffer();
+	// fill_buffer();
+
+	// fill the buffer with 1s and 0s
+	for (size_t i = 0; i < bit_buffer.size(); i++)
+		bit_buffer[i] = i % 2;
+
+	bit_cursor.total = bit_buffer.size();
+
 	bit_sampling.index = 0;
 	bit_cursor.index = 0;
 	configured = true;

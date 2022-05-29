@@ -52,9 +52,9 @@ extern "C"
 		CH_IRQ_PROLOGUE();
 
 		chSysLockFromIsr();
-		StreamDataExchange::handle_isr();
 		BufferExchange::handle_isr();
 		EventDispatcher::check_fifo_isr();
+		StreamDataExchange::handle_isr();
 		chSysUnlockFromIsr();
 
 		creg::m4txevent::clear();

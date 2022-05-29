@@ -144,6 +144,7 @@ set(CPPSRC
 	${COMMON}/portapack_io.cpp
 	${COMMON}/portapack_persistent_memory.cpp
 	${COMMON}/portapack_shared_memory.cpp
+	${COMMON}/stream_data_exchange.cpp
 	${COMMON}/sonde_packet.cpp
 	# ${COMMON}/test_packet.cpp
 	${COMMON}/tpms_packet.cpp
