@@ -51,7 +51,6 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 			}
 			else
 			{
-
 				// at this point, we want to transmit a new bit
 				bit_sampling.index = 0;
 
@@ -70,7 +69,8 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 					bit_cursor.index++;
 				}
 
-				current_bit = bit_buffer[bit_cursor.index];
+				// current_bit = bit_buffer[OOK_BIT_BUFFER_SIZE - bit_cursor.index];
+				current_bit = !current_bit;
 			}
 		}
 
@@ -102,12 +102,25 @@ void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 
 size_t OOKTxProcessor::fill_buffer()
 {
-	if (!(bool)stream)
+	// // test by filling the bit_buffer with the same data up until 1024 bytees
+	// if (stream->bytes_read >= 1024)
+	// 	return 0;
+
+	// uint32_t test = 0b10101111101011111010111100000000;
+
+	// auto count = 4;
+	// memcpy(&bit_buffer, &test, count);
+	// stream->bytes_read += count;
+	// bit_cursor.total = count * 8;
+
+	// return count;
+
+	if (!stream)
 		return 0;
 
 	auto read_size = stream->read(&bit_buffer, sizeof(bit_buffer));
 
-	if (read_size.is_error())
+	if (read_size.is_error() || read_size.value() == 0)
 		return 0;
 
 	// setup the maximum amount of bits in the bit_cursor
@@ -130,15 +143,19 @@ void OOKTxProcessor::reset()
 {
 	configured = false;
 
+	if (stream)
+		stream.reset();
+
 	// clear buffer
 	bit_buffer.reset();
+	current_bit = false;
 
 	txprogress_message.progress = 0;
 	txprogress_message.done = false;
 
 	bit_sampling.index = 0;
 	bit_cursor.index = 0;
-	bit_cursor.total = bit_buffer.size();
+	bit_cursor.total = sizeof(bit_buffer) * 8;
 }
 
 void OOKTxProcessor::on_message(const Message *const message)
@@ -165,26 +182,19 @@ void OOKTxProcessor::ook_config(const OOKConfigureMessage *message)
 };
 void OOKTxProcessor::stream_config(const StreamDataExchangeMessage *message)
 {
-	if (!(bool)message->config)
-	{
-		// I assume that the logic on top will handle the reset piece, so just resetting the pointer
-		// so the stream continues to read the buffer
-		stream.reset();
+	if (!message->config)
 		return;
-	}
 
-	// stream = std::make_unique<StreamDataExchange>(message->config);
+	if (stream)
+		stream.reset();
 
-	// fill_buffer();
+	stream = std::make_unique<StreamDataExchange>(message->config);
 
-	// fill the buffer with 1s and 0s
-	for (size_t i = 0; i < bit_buffer.size(); i++)
-		bit_buffer[i] = i % 2;
-
-	bit_cursor.total = bit_buffer.size();
+	fill_buffer();
 
 	bit_sampling.index = 0;
 	bit_cursor.index = 0;
+
 	configured = true;
 };
 
