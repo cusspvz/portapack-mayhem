@@ -30,8 +30,8 @@
 void OOKTxProcessor::execute(const buffer_c8_t &buffer)
 {
 
-	if (!configured)
-		return;
+	// if (!configured)
+	// 	return;
 
 	// This is called at 2.28M/2048 = 1113Hz
 	// Calculate the amount of bits this will need to read from the memory
